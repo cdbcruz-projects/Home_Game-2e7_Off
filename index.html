@@ -131,6 +131,42 @@ body{font-family:'Outfit',sans-serif;background:var(--gray-50);color:var(--gray-
 .rank-bar-fill{height:100%;background:linear-gradient(90deg,#86efac,var(--green));border-radius:2px;transition:width .6s ease;}
 .rank-vitoria-badge{display:inline-flex;align-items:center;gap:3px;background:var(--amber-light);color:var(--amber);font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;}
 
+/* ── SELETOR DE TORNEIOS (Resultado) ── */
+.resultado-seletor{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-bottom:12px;}
+.resultado-seletor-card{flex:0 0 auto;min-width:64px;background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;cursor:pointer;transition:all .15s;}
+.resultado-seletor-card:active{transform:scale(.95);}
+.resultado-seletor-card.ativo{background:var(--gray-900);border-color:var(--gray-900);}
+.resultado-seletor-num{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.03em;}
+.resultado-seletor-card.ativo .resultado-seletor-num{color:var(--gray-400);}
+.resultado-seletor-data{font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:var(--gray-900);margin-top:2px;}
+.resultado-seletor-card.ativo .resultado-seletor-data{color:var(--white);}
+
+/* ── DESEMPENHO ── */
+.podio-wrap{display:flex;align-items:flex-end;justify-content:center;gap:8px;height:130px;margin-bottom:6px;}
+.podio-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;width:70px;}
+.podio-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;}
+.podio-pts{font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;}
+.podio-bar{width:100%;border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;font-size:20px;}
+.taxa-row{margin-bottom:10px;}
+.taxa-row:last-child{margin-bottom:0;}
+.taxa-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
+.taxa-nome{font-weight:500;}
+.taxa-pct{font-weight:700;color:var(--green);}
+.taxa-bar-bg{background:var(--gray-200);border-radius:4px;height:8px;overflow:hidden;}
+.taxa-bar-fill{height:100%;background:var(--green);border-radius:4px;}
+.desemp-legenda{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px;}
+.desemp-legenda-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-600);}
+.desemp-legenda-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.desemp-card-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.desemp-mini-stat{background:var(--gray-50);border-radius:10px;padding:8px 4px;text-align:center;}
+.desemp-mini-val{font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;color:var(--gray-900);}
+.desemp-mini-lbl{font-size:9px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.04em;}
+.desemp-resultados{display:flex;gap:6px;margin-bottom:14px;}
+.desemp-resultado-chip{width:32px;height:32px;border-radius:8px;background:var(--white);border:1.5px solid var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--gray-400);}
+.desemp-resultado-chip.pos1{background:#fef3c7;border-color:#fbbf24;}
+.desemp-resultado-chip.pos2{background:#f3f4f6;border-color:#d1d5db;}
+.desemp-resultado-chip.pos3{background:#fce7f3;border-color:#f0abd4;}
+
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
 .stat-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;text-align:center;}
 .stat-label{font-size:13px;color:var(--gray-400);margin-bottom:4px;}
@@ -241,6 +277,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
   <button class="tab"         onclick="showTab('hist-torneios')">Últimos 6</button>
   <button class="tab"         onclick="showTab('historico')">Todos</button>
   <button class="tab"         onclick="showTab('ranking')">Ranking</button>
+  <button class="tab"         onclick="showTab('desempenho')">Desempenho</button>
 </div>
 </div>
 
@@ -344,6 +381,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 
 <!-- ══ RESULTADO ══ -->
 <div class="screen" id="screen-resultado">
+  <div id="resultado-seletor" class="resultado-seletor"></div>
   <!-- Pré-resultado (visível durante validação) -->
   <div id="screen-pre-resultado-inner" style="display:none;">
     <div id="pre-status-banner" style="margin-bottom:12px;"></div>
@@ -405,6 +443,24 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
   </div>
 </div>
 
+<!-- ══ DESEMPENHO ══ -->
+<div class="screen" id="screen-desempenho">
+  <div class="card">
+    <div class="card-title">Pódio atual da temporada</div>
+    <div id="desemp-podio" class="podio-wrap"></div>
+    <div style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:-4px;">Posição atual por pontos na temporada</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Taxa de pódio — top 6</div>
+    <div id="desemp-taxas"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Evolução de pontos — top 6</div>
+    <div id="desemp-legenda" class="desemp-legenda"></div>
+    <div id="desemp-grafico"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -422,7 +478,7 @@ const RESULTADOS_HISTORICOS = {"2026-01-14":[{"pos":1,"nome":"Richard","pontos":
 let state = {data:'',buyin:30,jogadores:[],ativo:false,jogadoresTemp:[]};
 
 // Seed histórico
-const _seed = [{"data":"2026-07-22","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":4,"gastos":120,"pos":1},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":2},{"nome":"Jesus","entradas":3,"gastos":90,"pos":3},{"nome":"Kiik","entradas":4,"gastos":120,"pos":4},{"nome":"Wendel","entradas":4,"gastos":120,"pos":5},{"nome":"Marcos","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Fernanda","entradas":2,"gastos":60,"pos":8}],"total":780,"ranking":78,"liquido":702,"colocacoes":{"1":"CD","2":"Ricardo","3":"Jesus"},"timestamp":1784776273778},{"data":"2026-07-14","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Jesus","entradas":4,"gastos":120,"pos":1},{"nome":"Danilo","entradas":2,"gastos":60,"pos":2},{"nome":"Wilcker","entradas":4,"gastos":120,"pos":3},{"nome":"Marcos","entradas":7,"gastos":210,"pos":4},{"nome":"Ricardo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":4,"gastos":120,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"CD","entradas":2,"gastos":60,"pos":8},{"nome":"Wendel","entradas":2,"gastos":60,"pos":9}],"total":1020,"ranking":102,"liquido":918,"colocacoes":{"1":"Jesus","2":"Danilo","3":"Wilcker"},"timestamp":1784091955721},{"data":"2026-07-07","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":6,"gastos":180,"pos":1},{"nome":"Jesus","entradas":3,"gastos":90,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":8,"gastos":240,"pos":4},{"nome":"JP","entradas":7,"gastos":210,"pos":5},{"nome":"Kiik","entradas":5,"gastos":150,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Marcos","entradas":2,"gastos":60,"pos":8},{"nome":"Danilo","entradas":1,"gastos":30,"pos":9}],"total":1170,"ranking":117,"liquido":1053,"colocacoes":{"1":"Wendel","2":"Jesus","3":"Ricardo"},"timestamp":1783480777691},{"data":"2026-07-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":5,"gastos":150,"pos":1},{"nome":"Ricardo","entradas":11,"gastos":330,"pos":2},{"nome":"Jesus","entradas":2,"gastos":60,"pos":3},{"nome":"Basoli","entradas":6,"gastos":180,"pos":4},{"nome":"CD","entradas":3,"gastos":90,"pos":5},{"nome":"Genival","entradas":3,"gastos":90,"pos":6},{"nome":"Kiik","entradas":2,"gastos":60,"pos":7},{"nome":"Danilo","entradas":1,"gastos":30,"pos":8}],"total":990,"ranking":99,"liquido":891,"colocacoes":{"1":"Wendel","2":"Ricardo","3":"Jesus"},"timestamp":1783049209845},{"data":"2026-06-25","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60,"pos":1},{"nome":"Jesus","entradas":2,"gastos":60,"pos":2},{"nome":"Marcos","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":5,"gastos":150,"pos":4},{"nome":"Kiik","entradas":5,"gastos":150,"pos":5},{"nome":"Danilo","entradas":3,"gastos":90,"pos":6},{"nome":"Wendel","entradas":3,"gastos":90,"pos":7},{"nome":"Wilcker","entradas":3,"gastos":90,"pos":8},{"nome":"Basoli","entradas":2,"gastos":60,"pos":9}],"total":870,"ranking":87,"liquido":783,"colocacoes":{"1":"Ricardo","2":"Jesus","3":"Marcos"},"timestamp":1782951599658},{"data":"2026-06-16","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"JP","entradas":5,"gastos":150,"pos":1},{"nome":"Kiik","entradas":2,"gastos":60,"pos":2},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":3},{"nome":"CD","entradas":7,"gastos":210,"pos":4},{"nome":"Marcos","entradas":5,"gastos":150,"pos":5},{"nome":"Genival","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Wendel","entradas":2,"gastos":60,"pos":8}],"total":900,"ranking":90,"liquido":810,"colocacoes":{"1":"JP","2":"Kiik","3":"Ricardo"},"timestamp":1781665135599},{"data":"2026-06-09","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Kiik","entradas":2,"gastos":60,"pos":1},{"nome":"Wendel","entradas":7,"gastos":210,"pos":2},{"nome":"Fujita","entradas":4,"gastos":120,"pos":3},{"nome":"JP","entradas":9,"gastos":270,"pos":4},{"nome":"CD","entradas":6,"gastos":180,"pos":5},{"nome":"Caio","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Jesus","entradas":3,"gastos":90,"pos":8},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":9},{"nome":"Marcel","entradas":1,"gastos":30,"pos":10}],"total":1230,"ranking":123,"liquido":1107,"colocacoes":{"1":"Kiik","2":"Wendel","3":"Fujita"},"timestamp":1781062023385},{"data":"2026-06-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":2,"gastos":60,"pos":1},{"nome":"JP","entradas":5,"gastos":150,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"Kiik","entradas":7,"gastos":210,"pos":4},{"nome":"Danilo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":5,"gastos":150,"pos":6},{"nome":"Marcos","entradas":4,"gastos":120,"pos":7},{"nome":"Diogo","entradas":3,"gastos":90,"pos":8},{"nome":"Jesus","entradas":2,"gastos":60,"pos":9},{"nome":"Wendel","entradas":2,"gastos":60,"pos":10}],"total":1200,"ranking":120,"liquido":1080,"colocacoes":{"1":"CD","2":"JP","3":"Ricardo"},"timestamp":1780454421093},{"data":"2026-05-26","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Kiik","entradas":5,"gastos":150},{"nome":"Caio","entradas":4,"gastos":120},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"CA","entradas":3,"gastos":90}],"total":870,"ranking":87,"liquido":783,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Genival"}},{"data":"2026-05-19","buyin":30,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":120},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"CD","entradas":4,"gastos":120},{"nome":"Danilo","entradas":3,"gastos":90},{"nome":"Genival","entradas":2,"gastos":60},{"nome":"Richard","entradas":1,"gastos":30},{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Jesus","entradas":4,"gastos":120}],"total":990,"ranking":99,"liquido":891,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"Kiik","3":"JP"}},{"data":"2026-05-13","buyin":30,"jogadores":[{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Jesus","entradas":5,"gastos":150},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Marcos","entradas":6,"gastos":180},{"nome":"CD","entradas":2,"gastos":60}],"total":900,"ranking":90,"liquido":810,"timestamp":0,"importado":true,"colocacoes":{"1":"Genival","2":"Jesus","3":"Wendel"}},{"data":"2026-05-05","buyin":30,"jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Wendel","entradas":3,"gastos":90},{"nome":"Jesus","entradas":2,"gastos":60},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"CD","entradas":4,"gastos":120},{"nome":"JP","entradas":8,"gastos":240},{"nome":"Marcos","entradas":9,"gastos":270},{"nome":"Danilo","entradas":2,"gastos":60}],"total":960,"ranking":96,"liquido":864,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"Wendel","3":"Jesus"}},{"data":"2026-04-28","buyin":30,"jogadores":[{"nome":"Jesus","entradas":1,"gastos":30},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Wendel","entradas":6,"gastos":180},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"CD","entradas":6,"gastos":180},{"nome":"Danilo","entradas":6,"gastos":180},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"Caio","entradas":2,"gastos":60},{"nome":"Richard","entradas":2,"gastos":60},{"nome":"Favero","entradas":4,"gastos":120},{"nome":"Genival","entradas":4,"gastos":120},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Marcos","entradas":2,"gastos":60}],"total":1470,"ranking":147,"liquido":1323,"timestamp":0,"importado":true,"colocacoes":{"1":"Jesus","2":"Basoli","3":"Wendel"}},{"data":"2026-04-22","buyin":30,"jogadores":[{"nome":"CD","entradas":2,"gastos":60},{"nome":"Ricardo","entradas":3,"gastos":90},{"nome":"Richard","entradas":5,"gastos":150},{"nome":"Basoli","entradas":5,"gastos":150},{"nome":"Kiik","entradas":4,"gastos":120},{"nome":"Marcos","entradas":2,"gastos":60},{"nome":"Danilo","entradas":5,"gastos":150}],"total":780,"ranking":78,"liquido":702,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Richard"}},{"data":"2026-04-14","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Marcos","entradas":8,"gastos":240},{"nome":"Diogo","entradas":3,"gastos":90},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Richard","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":6,"gastos":180},{"nome":"Danilo","entradas":2,"gastos":60},{"nome":"JP","entradas":1,"gastos":30}],"total":840,"ranking":84,"liquido":756,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Marcos","3":"Diogo"}},{"data":"2026-04-08","buyin":20,"jogadores":[{"nome":"Marcos","entradas":6,"gastos":120},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Basoli","entradas":6,"gastos":120},{"nome":"Alex","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40}],"total":540,"ranking":54,"liquido":486,"timestamp":0,"importado":true,"colocacoes":{"1":"Marcos","2":"Richard","3":"Wilcker"}},{"data":"2026-03-31","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Marcos","entradas":3,"gastos":60},{"nome":"CA","entradas":2,"gastos":40},{"nome":"Richard","entradas":4,"gastos":80},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":6,"gastos":120}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Marcos","3":"CA"}},{"data":"2026-03-24","buyin":20,"jogadores":[{"nome":"Kimura","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Kiik","entradas":6,"gastos":120},{"nome":"Favero","entradas":2,"gastos":40},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Diogo","entradas":6,"gastos":120},{"nome":"Marcos","entradas":5,"gastos":100}],"total":820,"ranking":82,"liquido":738,"timestamp":0,"importado":true,"colocacoes":{"1":"Kimura","2":"Wilcker","3":"CD"}},{"data":"2026-03-18","buyin":20,"jogadores":[{"nome":"Ricardo","entradas":5,"gastos":100},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Danilo","entradas":5,"gastos":100},{"nome":"Wendel","entradas":6,"gastos":120},{"nome":"Kiik","entradas":3,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Diogo","entradas":3,"gastos":60}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"CD","3":"Danilo"}},{"data":"2026-03-10","buyin":20,"jogadores":[{"nome":"CD","entradas":4,"gastos":80},{"nome":"Danilo","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Kiik","entradas":5,"gastos":100},{"nome":"Caio","entradas":4,"gastos":80}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Danilo","3":"Ricardo"}},{"data":"2026-03-04","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Wilcker","entradas":3,"gastos":60},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Wendel","entradas":7,"gastos":140}],"total":400,"ranking":40,"liquido":360,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Danilo","3":"Wilcker"}},{"data":"2026-02-25","buyin":20,"jogadores":[{"nome":"CD","entradas":3,"gastos":60},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Basoli","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Wendel","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40}],"total":380,"ranking":38,"liquido":342,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Richard","3":"Danilo"}},{"data":"2026-02-12","buyin":20,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Kimura","entradas":4,"gastos":80},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Kiik","entradas":4,"gastos":80},{"nome":"Favero","entradas":2,"gastos":40}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"CD","3":"Wilcker"}},{"data":"2026-01-29","buyin":20,"jogadores":[{"nome":"Caio","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Evandro","entradas":1,"gastos":20},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":3,"gastos":60},{"nome":"Diogo","entradas":2,"gastos":40},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Wendel","entradas":4,"gastos":80}],"total":560,"ranking":56,"liquido":504,"timestamp":0,"importado":true,"colocacoes":{"1":"Caio","2":"Evandro","3":"Richard"}},{"data":"2026-01-14","buyin":20,"jogadores":[{"nome":"Richard","entradas":3,"gastos":60},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Danilo","entradas":3,"gastos":60},{"nome":"CA","entradas":5,"gastos":100},{"nome":"Marcos","entradas":4,"gastos":80}],"total":460,"ranking":46,"liquido":414,"timestamp":0,"importado":true,"colocacoes":{"1":"Richard","2":"Kiik","3":"CD"}}];
+const _seed = [{"data":"2026-08-04","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Duarte","entradas":3,"gastos":90,"pos":1},{"nome":"Ricardo","entradas":5,"gastos":150,"pos":2},{"nome":"Hugo","entradas":2,"gastos":60,"pos":3},{"nome":"CD","entradas":4,"gastos":120,"pos":4},{"nome":"Jesus","entradas":4,"gastos":120,"pos":5},{"nome":"Marcos","entradas":3,"gastos":90,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"Basoli","entradas":3,"gastos":90,"pos":8},{"nome":"Wendel","entradas":2,"gastos":60,"pos":9}],"total":870,"ranking":87,"liquido":783,"colocacoes":{"1":"Duarte","2":"Ricardo","3":"Hugo"},"timestamp":1785898409461},{"data":"2026-07-30","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Hugo","entradas":3,"gastos":90,"pos":1},{"nome":"Ricardo","entradas":3,"gastos":90,"pos":2},{"nome":"Wendel","entradas":5,"gastos":150,"pos":3},{"nome":"Marcos","entradas":5,"gastos":150,"pos":4},{"nome":"Danilo","entradas":4,"gastos":120,"pos":5},{"nome":"Genival","entradas":4,"gastos":120,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"Jesus","entradas":3,"gastos":90,"pos":8},{"nome":"Basoli","entradas":3,"gastos":90,"pos":9},{"nome":"CD","entradas":2,"gastos":60,"pos":10},{"nome":"Duarte","entradas":2,"gastos":60,"pos":11},{"nome":"Marcel","entradas":2,"gastos":60,"pos":12},{"nome":"CA","entradas":2,"gastos":60,"pos":13},{"nome":"Caio","entradas":2,"gastos":60,"pos":14}],"total":1290,"ranking":129,"liquido":1161,"colocacoes":{"1":"Hugo","2":"Ricardo","3":"Wendel"},"timestamp":1785470308469},{"data":"2026-07-22","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":4,"gastos":120,"pos":1},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":2},{"nome":"Jesus","entradas":3,"gastos":90,"pos":3},{"nome":"Kiik","entradas":4,"gastos":120,"pos":4},{"nome":"Wendel","entradas":4,"gastos":120,"pos":5},{"nome":"Marcos","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Fernanda","entradas":2,"gastos":60,"pos":8}],"total":780,"ranking":78,"liquido":702,"colocacoes":{"1":"CD","2":"Ricardo","3":"Jesus"},"timestamp":1784776273778},{"data":"2026-07-14","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Jesus","entradas":4,"gastos":120,"pos":1},{"nome":"Danilo","entradas":2,"gastos":60,"pos":2},{"nome":"Wilcker","entradas":4,"gastos":120,"pos":3},{"nome":"Marcos","entradas":7,"gastos":210,"pos":4},{"nome":"Ricardo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":4,"gastos":120,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"CD","entradas":2,"gastos":60,"pos":8},{"nome":"Wendel","entradas":2,"gastos":60,"pos":9}],"total":1020,"ranking":102,"liquido":918,"colocacoes":{"1":"Jesus","2":"Danilo","3":"Wilcker"},"timestamp":1784091955721},{"data":"2026-07-07","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":6,"gastos":180,"pos":1},{"nome":"Jesus","entradas":3,"gastos":90,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":8,"gastos":240,"pos":4},{"nome":"JP","entradas":7,"gastos":210,"pos":5},{"nome":"Kiik","entradas":5,"gastos":150,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Marcos","entradas":2,"gastos":60,"pos":8},{"nome":"Danilo","entradas":1,"gastos":30,"pos":9}],"total":1170,"ranking":117,"liquido":1053,"colocacoes":{"1":"Wendel","2":"Jesus","3":"Ricardo"},"timestamp":1783480777691},{"data":"2026-07-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":5,"gastos":150,"pos":1},{"nome":"Ricardo","entradas":11,"gastos":330,"pos":2},{"nome":"Jesus","entradas":2,"gastos":60,"pos":3},{"nome":"Basoli","entradas":6,"gastos":180,"pos":4},{"nome":"CD","entradas":3,"gastos":90,"pos":5},{"nome":"Genival","entradas":3,"gastos":90,"pos":6},{"nome":"Kiik","entradas":2,"gastos":60,"pos":7},{"nome":"Danilo","entradas":1,"gastos":30,"pos":8}],"total":990,"ranking":99,"liquido":891,"colocacoes":{"1":"Wendel","2":"Ricardo","3":"Jesus"},"timestamp":1783049209845},{"data":"2026-06-25","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60,"pos":1},{"nome":"Jesus","entradas":2,"gastos":60,"pos":2},{"nome":"Marcos","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":5,"gastos":150,"pos":4},{"nome":"Kiik","entradas":5,"gastos":150,"pos":5},{"nome":"Danilo","entradas":3,"gastos":90,"pos":6},{"nome":"Wendel","entradas":3,"gastos":90,"pos":7},{"nome":"Wilcker","entradas":3,"gastos":90,"pos":8},{"nome":"Basoli","entradas":2,"gastos":60,"pos":9}],"total":870,"ranking":87,"liquido":783,"colocacoes":{"1":"Ricardo","2":"Jesus","3":"Marcos"},"timestamp":1782951599658},{"data":"2026-06-16","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"JP","entradas":5,"gastos":150,"pos":1},{"nome":"Kiik","entradas":2,"gastos":60,"pos":2},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":3},{"nome":"CD","entradas":7,"gastos":210,"pos":4},{"nome":"Marcos","entradas":5,"gastos":150,"pos":5},{"nome":"Genival","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Wendel","entradas":2,"gastos":60,"pos":8}],"total":900,"ranking":90,"liquido":810,"colocacoes":{"1":"JP","2":"Kiik","3":"Ricardo"},"timestamp":1781665135599},{"data":"2026-06-09","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Kiik","entradas":2,"gastos":60,"pos":1},{"nome":"Wendel","entradas":7,"gastos":210,"pos":2},{"nome":"Fujita","entradas":4,"gastos":120,"pos":3},{"nome":"JP","entradas":9,"gastos":270,"pos":4},{"nome":"CD","entradas":6,"gastos":180,"pos":5},{"nome":"Caio","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Jesus","entradas":3,"gastos":90,"pos":8},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":9},{"nome":"Marcel","entradas":1,"gastos":30,"pos":10}],"total":1230,"ranking":123,"liquido":1107,"colocacoes":{"1":"Kiik","2":"Wendel","3":"Fujita"},"timestamp":1781062023385},{"data":"2026-06-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":2,"gastos":60,"pos":1},{"nome":"JP","entradas":5,"gastos":150,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"Kiik","entradas":7,"gastos":210,"pos":4},{"nome":"Danilo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":5,"gastos":150,"pos":6},{"nome":"Marcos","entradas":4,"gastos":120,"pos":7},{"nome":"Diogo","entradas":3,"gastos":90,"pos":8},{"nome":"Jesus","entradas":2,"gastos":60,"pos":9},{"nome":"Wendel","entradas":2,"gastos":60,"pos":10}],"total":1200,"ranking":120,"liquido":1080,"colocacoes":{"1":"CD","2":"JP","3":"Ricardo"},"timestamp":1780454421093},{"data":"2026-05-26","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Kiik","entradas":5,"gastos":150},{"nome":"Caio","entradas":4,"gastos":120},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"CA","entradas":3,"gastos":90}],"total":870,"ranking":87,"liquido":783,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Genival"}},{"data":"2026-05-19","buyin":30,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":120},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"CD","entradas":4,"gastos":120},{"nome":"Danilo","entradas":3,"gastos":90},{"nome":"Genival","entradas":2,"gastos":60},{"nome":"Richard","entradas":1,"gastos":30},{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Jesus","entradas":4,"gastos":120}],"total":990,"ranking":99,"liquido":891,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"Kiik","3":"JP"}},{"data":"2026-05-13","buyin":30,"jogadores":[{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Jesus","entradas":5,"gastos":150},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Marcos","entradas":6,"gastos":180},{"nome":"CD","entradas":2,"gastos":60}],"total":900,"ranking":90,"liquido":810,"timestamp":0,"importado":true,"colocacoes":{"1":"Genival","2":"Jesus","3":"Wendel"}},{"data":"2026-05-05","buyin":30,"jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Wendel","entradas":3,"gastos":90},{"nome":"Jesus","entradas":2,"gastos":60},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"CD","entradas":4,"gastos":120},{"nome":"JP","entradas":8,"gastos":240},{"nome":"Marcos","entradas":9,"gastos":270},{"nome":"Danilo","entradas":2,"gastos":60}],"total":960,"ranking":96,"liquido":864,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"Wendel","3":"Jesus"}},{"data":"2026-04-28","buyin":30,"jogadores":[{"nome":"Jesus","entradas":1,"gastos":30},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Wendel","entradas":6,"gastos":180},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"CD","entradas":6,"gastos":180},{"nome":"Danilo","entradas":6,"gastos":180},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"Caio","entradas":2,"gastos":60},{"nome":"Richard","entradas":2,"gastos":60},{"nome":"Favero","entradas":4,"gastos":120},{"nome":"Genival","entradas":4,"gastos":120},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Marcos","entradas":2,"gastos":60}],"total":1470,"ranking":147,"liquido":1323,"timestamp":0,"importado":true,"colocacoes":{"1":"Jesus","2":"Basoli","3":"Wendel"}},{"data":"2026-04-22","buyin":30,"jogadores":[{"nome":"CD","entradas":2,"gastos":60},{"nome":"Ricardo","entradas":3,"gastos":90},{"nome":"Richard","entradas":5,"gastos":150},{"nome":"Basoli","entradas":5,"gastos":150},{"nome":"Kiik","entradas":4,"gastos":120},{"nome":"Marcos","entradas":2,"gastos":60},{"nome":"Danilo","entradas":5,"gastos":150}],"total":780,"ranking":78,"liquido":702,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Richard"}},{"data":"2026-04-14","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Marcos","entradas":8,"gastos":240},{"nome":"Diogo","entradas":3,"gastos":90},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Richard","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":6,"gastos":180},{"nome":"Danilo","entradas":2,"gastos":60},{"nome":"JP","entradas":1,"gastos":30}],"total":840,"ranking":84,"liquido":756,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Marcos","3":"Diogo"}},{"data":"2026-04-08","buyin":20,"jogadores":[{"nome":"Marcos","entradas":6,"gastos":120},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Basoli","entradas":6,"gastos":120},{"nome":"Alex","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40}],"total":540,"ranking":54,"liquido":486,"timestamp":0,"importado":true,"colocacoes":{"1":"Marcos","2":"Richard","3":"Wilcker"}},{"data":"2026-03-31","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Marcos","entradas":3,"gastos":60},{"nome":"CA","entradas":2,"gastos":40},{"nome":"Richard","entradas":4,"gastos":80},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":6,"gastos":120}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Marcos","3":"CA"}},{"data":"2026-03-24","buyin":20,"jogadores":[{"nome":"Kimura","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Kiik","entradas":6,"gastos":120},{"nome":"Favero","entradas":2,"gastos":40},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Diogo","entradas":6,"gastos":120},{"nome":"Marcos","entradas":5,"gastos":100}],"total":820,"ranking":82,"liquido":738,"timestamp":0,"importado":true,"colocacoes":{"1":"Kimura","2":"Wilcker","3":"CD"}},{"data":"2026-03-18","buyin":20,"jogadores":[{"nome":"Ricardo","entradas":5,"gastos":100},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Danilo","entradas":5,"gastos":100},{"nome":"Wendel","entradas":6,"gastos":120},{"nome":"Kiik","entradas":3,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Diogo","entradas":3,"gastos":60}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"CD","3":"Danilo"}},{"data":"2026-03-10","buyin":20,"jogadores":[{"nome":"CD","entradas":4,"gastos":80},{"nome":"Danilo","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Kiik","entradas":5,"gastos":100},{"nome":"Caio","entradas":4,"gastos":80}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Danilo","3":"Ricardo"}},{"data":"2026-03-04","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Wilcker","entradas":3,"gastos":60},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Wendel","entradas":7,"gastos":140}],"total":400,"ranking":40,"liquido":360,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Danilo","3":"Wilcker"}},{"data":"2026-02-25","buyin":20,"jogadores":[{"nome":"CD","entradas":3,"gastos":60},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Basoli","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Wendel","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40}],"total":380,"ranking":38,"liquido":342,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Richard","3":"Danilo"}},{"data":"2026-02-12","buyin":20,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Kimura","entradas":4,"gastos":80},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Kiik","entradas":4,"gastos":80},{"nome":"Favero","entradas":2,"gastos":40}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"CD","3":"Wilcker"}},{"data":"2026-01-29","buyin":20,"jogadores":[{"nome":"Caio","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Evandro","entradas":1,"gastos":20},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":3,"gastos":60},{"nome":"Diogo","entradas":2,"gastos":40},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Wendel","entradas":4,"gastos":80}],"total":560,"ranking":56,"liquido":504,"timestamp":0,"importado":true,"colocacoes":{"1":"Caio","2":"Evandro","3":"Richard"}},{"data":"2026-01-14","buyin":20,"jogadores":[{"nome":"Richard","entradas":3,"gastos":60},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Danilo","entradas":3,"gastos":60},{"nome":"CA","entradas":5,"gastos":100},{"nome":"Marcos","entradas":4,"gastos":80}],"total":460,"ranking":46,"liquido":414,"timestamp":0,"importado":true,"colocacoes":{"1":"Richard","2":"Kiik","3":"CD"}}];
 
 // Inicializar histórico
 // Se a versão salva é mais antiga que o seed (dados de teste), limpar e usar seed
@@ -490,7 +546,7 @@ function salvarEstado() { localStorage.setItem('poker_state', JSON.stringify(sta
 function showTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const visibleTabs = ['setup','torneio','resultado','hist-torneios','historico','ranking'];
+  const visibleTabs = ['setup','torneio','resultado','hist-torneios','historico','ranking','desempenho'];
   const vi = visibleTabs.indexOf(tab);
   if (vi >= 0) document.querySelectorAll('.tab')[vi].classList.add('active');
   const el = document.getElementById('screen-'+tab);
@@ -502,7 +558,9 @@ function showTab(tab) {
     if (inner) inner.style.display = 'none';
     if (final) final.style.display = 'block';
   }
+  if (tab === 'resultado') renderResultadoSeletor();
   if (tab === 'hist-torneios') renderHistTorneios();
+  if (tab === 'desempenho') renderDesempenho();
 }
 
 // ── Setup
@@ -838,7 +896,7 @@ function abrirModalValidacao() {
 }
 
 function fecharModal() {
-  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro'].forEach(id => {
+  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro','modal-desempenho-jogador'].forEach(id => {
     const m = document.getElementById(id);
     if (m) m.remove();
   });
@@ -1384,11 +1442,10 @@ function renderHistorico() {
 }
 
 // ── Ranking de pontos
-function calcularRanking() {
-  const pts = {};
-  // Seed histórico de resultados
+// Constrói o mapa {data: [{pos,nome,pontos}]} combinando o histórico importado (planilha)
+// com os torneios registrados no app — fonte única usada pelo Ranking e pelo Desempenho.
+function _construirFontesPorData() {
   const fontes = {...RESULTADOS_HISTORICOS};
-  // Torneios novos do histórico local
   historico.forEach(t => {
     if (!t.colocacoes) return;
     const data = t.data;
@@ -1399,6 +1456,12 @@ function calcularRanking() {
     jogadoresT.forEach(nome => { if (!cols.find(c=>c.nome===nome)) cols.push({pos:4,nome,pontos:5}); });
     fontes[data] = cols;
   });
+  return fontes;
+}
+
+function calcularRanking() {
+  const pts = {};
+  const fontes = _construirFontesPorData();
   Object.values(fontes).forEach(cols => {
     cols.filter(c=>c.nome).forEach(c => {
       if (!pts[c.nome]) pts[c.nome]={pontos:0,vitorias:0,podios:0,jogos:0};
@@ -1440,7 +1503,7 @@ function renderRanking() {
     const row = document.createElement('div'); row.className='rank-row';
     row.innerHTML = `
       <div class="rank-pos ${posClass}">${posEmoji||i+1}</div>
-      <div><div class="rank-nome" style="cursor:pointer;" onclick="abrirResumoFinanceiro('${j.nome}')">${j.nome} <span style="font-size:11px;color:var(--gray-400);">📊</span></div>
+      <div><div class="rank-nome"><span style="cursor:pointer;" onclick="abrirResumoFinanceiro('${j.nome}')">${j.nome} <span style="font-size:11px;color:var(--gray-400);">📊</span></span> <span style="cursor:pointer;" onclick="abrirDesempenhoJogador('${j.nome}')" title="Desempenho"><span style="font-size:11px;color:var(--gray-400);">📈</span></span></div>
         <div class="rank-bar-wrap"><div class="rank-bar"><div class="rank-bar-fill" style="width:${(j.pontos/maxPts*100).toFixed(0)}%"></div></div></div>
       </div>
       <div class="rank-pts" style="color:${i===0?'var(--amber)':i===1?'var(--gray-600)':i===2?'#92400e':'var(--gray-900)'}">${j.pontos}</div>
@@ -1468,6 +1531,154 @@ function renderRanking() {
     </div>`;
     ul.appendChild(div);
   });
+}
+
+// ── Desempenho (geral + individual)
+const _DESEMP_CORES = ['#d97706','#4b5563','#9d174d','#2563eb','#7c3aed','#0f766e'];
+
+function calcularDesempenhoDetalhado() {
+  const fontes = _construirFontesPorData();
+  const datas = Object.keys(fontes).sort();
+  const agreg = {};
+  datas.forEach(data => {
+    fontes[data].filter(c => c.nome).forEach(c => {
+      if (!agreg[c.nome]) agreg[c.nome] = { jogos:0, vitorias:0, podios:0, pontos:0, posicoes:[], resultados:[] };
+      const a = agreg[c.nome];
+      a.jogos++; a.pontos += c.pontos;
+      if (c.pos === 1) a.vitorias++;
+      if (c.pos <= 3) { a.podios++; a.posicoes.push(c.pos); a.resultados.push(String(c.pos)); }
+      else a.resultados.push('-');
+    });
+  });
+  const lista = Object.entries(agreg).map(([nome,s]) => ({
+    nome, jogos:s.jogos, vitorias:s.vitorias, podios:s.podios, pontos:s.pontos,
+    taxaPodio: s.jogos ? Math.round(100*s.podios/s.jogos) : 0,
+    posicaoMedia: s.posicoes.length ? Math.round((s.posicoes.reduce((a,b)=>a+b,0)/s.posicoes.length)*10)/10 : null,
+    resultados: s.resultados
+  })).sort((a,b) => b.pontos - a.pontos);
+
+  function timelineDe(nome) {
+    let acumulado = 0;
+    return datas.map(data => {
+      const c = fontes[data].find(x => x.nome === nome);
+      if (c) acumulado += c.pontos;
+      return acumulado;
+    });
+  }
+  return { lista, datas, timelineDe };
+}
+
+// Gera um gráfico de linha simples em SVG, sem depender de biblioteca externa
+// (mantém o app funcionando 100% offline).
+function _svgLinhaPontos(series, largura, altura) {
+  const W = largura || 320, H = altura || 150, P = 6;
+  const allVals = series.flatMap(s => s.valores);
+  const maxV = Math.max(1, ...allVals);
+  const n = Math.max(...series.map(s => s.valores.length), 1);
+  const stepX = n > 1 ? (W - P*2) / (n-1) : 0;
+  const toY = v => H - P - (v/maxV)*(H-P*2);
+  const linhas = series.map(s => {
+    const pts = s.valores.map((v,i) => `${(P+i*stepX).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${s.cor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;overflow:visible;display:block;">${linhas}</svg>`;
+}
+
+function renderDesempenho() {
+  const { lista, timelineDe } = calcularDesempenhoDetalhado();
+  const top6 = lista.slice(0,6);
+  const top3 = lista.slice(0,3);
+
+  // Pódio (top 3)
+  const maxPts = top3[0]?.pontos || 1;
+  const alturaBase = 90;
+  const ordemVisual = top3.length >= 3 ? [top3[1],top3[0],top3[2]] : top3; // 2º,1º,3º
+  const medalhas = {0:'🥈',1:'🥇',2:'🥉'};
+  const coresBar = {0:'#d1d5db',1:'#fbbf24',2:'#e5b48a'};
+  const podioEl = document.getElementById('desemp-podio');
+  if (podioEl) {
+    podioEl.innerHTML = ordemVisual.map((j,i) => {
+      if (!j) return '';
+      const h = Math.max(30, Math.round((j.pontos/maxPts)*alturaBase));
+      const medalha = j===top3[0] ? '🥇' : j===top3[1] ? '🥈' : '🥉';
+      const cor = j===top3[0] ? '#fbbf24' : j===top3[1] ? '#d1d5db' : '#e5b48a';
+      return `<div class="podio-col">
+        <div class="podio-avatar" style="background:${cor}22;color:#374151;">${j.nome.slice(0,2).toUpperCase()}</div>
+        <div class="podio-pts">${j.pontos}</div>
+        <div class="podio-bar" style="height:${h}px;background:${cor};">${medalha}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Taxa de pódio (top 6)
+  const taxasEl = document.getElementById('desemp-taxas');
+  if (taxasEl) {
+    taxasEl.innerHTML = top6.map((j,i) => `
+      <div class="taxa-row">
+        <div class="taxa-top"><span class="taxa-nome">${i+1}. ${j.nome}</span><span class="taxa-pct">${j.taxaPodio}%</span></div>
+        <div class="taxa-bar-bg"><div class="taxa-bar-fill" style="width:${j.taxaPodio}%;"></div></div>
+      </div>`).join('');
+  }
+
+  // Legenda + gráfico de evolução (top 6)
+  const legEl = document.getElementById('desemp-legenda');
+  const grafEl = document.getElementById('desemp-grafico');
+  if (legEl && grafEl) {
+    legEl.innerHTML = top6.map((j,i) => `
+      <div class="desemp-legenda-item"><span class="desemp-legenda-dot" style="background:${_DESEMP_CORES[i]};"></span>${j.nome}</div>`).join('');
+    const series = top6.map((j,i) => ({ nome:j.nome, cor:_DESEMP_CORES[i], valores: timelineDe(j.nome) }));
+    grafEl.innerHTML = _svgLinhaPontos(series, 320, 150);
+  }
+}
+
+function abrirDesempenhoJogador(nome) {
+  const { lista, timelineDe } = calcularDesempenhoDetalhado();
+  const j = lista.find(x => x.nome === nome);
+  if (!j) { showToast('Sem dados de desempenho ainda para ' + nome); return; }
+  const financeiro = calcularFinanceiroJogador(nome);
+  const comJogosSuficientes = lista.filter(x => x.jogos >= 5);
+  const mediaGrupo = comJogosSuficientes.length
+    ? Math.round(comJogosSuficientes.reduce((s,x) => s + x.taxaPodio, 0) / comJogosSuficientes.length)
+    : 0;
+  const posicaoNaTemporada = lista.findIndex(x => x.nome === nome) + 1;
+  const ultimos5 = j.resultados.slice(-5);
+  const chipsResultados = ultimos5.length
+    ? ultimos5.map(r => `<div class="desemp-resultado-chip ${r!=='-'?'pos'+r:''}">${r==='1'?'🥇':r==='2'?'🥈':r==='3'?'🥉':'—'}</div>`).join('')
+    : '<div style="font-size:12px;color:var(--gray-400);">Sem torneios registrados ainda.</div>';
+  const sinalSaldo = financeiro.saldo >= 0 ? '+' : '-';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-desempenho-jogador';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">📈 Desempenho — ${j.nome}</div>
+      <div class="modal-sub">${posicaoNaTemporada}º lugar na temporada · ${j.pontos} pts</div>
+      <div class="desemp-card-stats" style="margin-top:12px;">
+        <div class="desemp-mini-stat"><div class="desemp-mini-val">${j.jogos}</div><div class="desemp-mini-lbl">Jogos</div></div>
+        <div class="desemp-mini-stat"><div class="desemp-mini-val">${j.podios}</div><div class="desemp-mini-lbl">Pódios</div></div>
+        <div class="desemp-mini-stat"><div class="desemp-mini-val">${j.vitorias}</div><div class="desemp-mini-lbl">Vitórias</div></div>
+        <div class="desemp-mini-stat"><div class="desemp-mini-val">${j.posicaoMedia ?? '—'}</div><div class="desemp-mini-lbl">Pos. média</div></div>
+      </div>
+      <div class="breakdown-row"><span>Saldo na temporada</span><span style="font-weight:700;color:${financeiro.saldo>=0?'var(--green)':'var(--red)'};">${sinalSaldo}R$ ${Math.abs(financeiro.saldo).toFixed(2)}</span></div>
+      <div class="card-title" style="margin-top:14px;">Taxa de pódio vs média do grupo</div>
+      <div class="taxa-row">
+        <div class="taxa-top"><span class="taxa-nome">${j.nome}</span><span class="taxa-pct">${j.taxaPodio}%</span></div>
+        <div class="taxa-bar-bg"><div class="taxa-bar-fill" style="width:${j.taxaPodio}%;"></div></div>
+      </div>
+      <div class="taxa-row">
+        <div class="taxa-top"><span class="taxa-nome" style="color:var(--gray-400);">Média do grupo</span><span class="taxa-pct" style="color:var(--gray-400);">${mediaGrupo}%</span></div>
+        <div class="taxa-bar-bg"><div class="taxa-bar-fill" style="width:${mediaGrupo}%;background:var(--gray-400);"></div></div>
+      </div>
+      <div class="card-title" style="margin-top:14px;">Últimos 5 resultados</div>
+      <div class="desemp-resultados">${chipsResultados}</div>
+      <div class="card-title">Evolução de pontos</div>
+      <div>${_svgLinhaPontos([{nome:j.nome,cor:'#d97706',valores:timelineDe(j.nome)}], 300, 110)}</div>
+      <div class="modal-btns" style="margin-top:10px;">
+        <button class="btn-secondary" onclick="fecharModal()" style="width:auto;padding:12px 16px;">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
 }
 
 // ── Exportar XLSX
@@ -1623,7 +1834,8 @@ function exportarXLSX(torneio) {
 }
 
 // ── Resultado Final
-function renderResultadoFinal(torneio) {
+function renderResultadoFinal(torneio, opts) {
+  opts = opts || {};
   // Esconder pré-resultado e mostrar resultado final
   const inner = document.getElementById('screen-pre-resultado-inner');
   const final = document.getElementById('resultado-content');
@@ -1646,7 +1858,7 @@ function renderResultadoFinal(torneio) {
   html += `<div class="final-banner">
     <div class="icon" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:2px;"></div>
     <div class="text">
-      <div class="title">RESULTADO OFICIAL VALIDADO</div>
+      <div class="title">${opts.modoConsulta ? 'CONSULTANDO TORNEIO ANTERIOR' : 'RESULTADO OFICIAL VALIDADO'}</div>
       <div class="sub">${dataFmt}</div>
     </div>
   </div>`;
@@ -1691,11 +1903,53 @@ function renderResultadoFinal(torneio) {
   html += `</div>`;
 
   // Botões
-  html += `<button class="btn-primary" onclick="novoTorneio()" style="background:var(--gray-900);box-shadow:none;margin-bottom:8px;">+ Novo Torneio</button>
-    <button class="btn-secondary" onclick="showTab('ranking')" style="margin-bottom:8px;">Ver Ranking atualizado</button>
-    <button class="btn-secondary" onclick="exportarXLSX(historico[0])" style="border-color:var(--green);color:var(--green);">📥 Exportar planilha (.xlsx)</button>`;
+  if (opts.modoConsulta) {
+    html += `<button class="btn-primary" onclick="voltarResultadoAtual()" style="background:var(--gray-900);box-shadow:none;margin-bottom:8px;">← Voltar aos torneios</button>
+      <button class="btn-secondary" onclick="exportarXLSX(historico[${opts.index}])" style="border-color:var(--green);color:var(--green);">📥 Exportar planilha (.xlsx)</button>`;
+  } else {
+    html += `<button class="btn-primary" onclick="novoTorneio()" style="background:var(--gray-900);box-shadow:none;margin-bottom:8px;">+ Novo Torneio</button>
+      <button class="btn-secondary" onclick="showTab('ranking')" style="margin-bottom:8px;">Ver Ranking atualizado</button>
+      <button class="btn-secondary" onclick="exportarXLSX(torneio)" style="border-color:var(--green);color:var(--green);">📥 Exportar planilha (.xlsx)</button>`;
+  }
 
   c.innerHTML = html;
+  renderResultadoSeletor(opts.modoConsulta ? opts.index : null);
+}
+
+// ── Seletor de torneios anteriores (aba Resultado)
+function renderResultadoSeletor(indexAtivo) {
+  const el = document.getElementById('resultado-seletor');
+  if (!el) return;
+  if (!historico.length) { el.innerHTML = ''; return; }
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const total = historico.length;
+  el.innerHTML = historico.map((t,i) => {
+    const numero = total - i; // mais antigo = nº1
+    const d = new Date(t.data+'T12:00:00');
+    const ativo = indexAtivo === i;
+    return `<div class="resultado-seletor-card ${ativo?'ativo':''}" onclick="verResultadoHistorico(${i})">
+      <div class="resultado-seletor-num">Nº ${numero}</div>
+      <div class="resultado-seletor-data">${d.getDate()} ${meses[d.getMonth()]}</div>
+    </div>`;
+  }).join('');
+}
+
+function verResultadoHistorico(index) {
+  const t = historico[index];
+  if (!t) return;
+  renderResultadoFinal(t, { modoConsulta: true, index });
+}
+
+function voltarResultadoAtual() {
+  if (typeof pendingTorneio !== 'undefined' && pendingTorneio) {
+    renderPreResultado(true);
+    renderResultadoSeletor(null);
+  } else if (historico[0]) {
+    renderResultadoFinal(historico[0]);
+  } else {
+    document.getElementById('resultado-content').innerHTML = '<div class="empty-state"><p>Nenhum torneio finalizado ainda.</p></div>';
+    renderResultadoSeletor(null);
+  }
 }
 
 // ── Toast
