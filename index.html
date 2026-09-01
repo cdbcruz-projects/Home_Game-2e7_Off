@@ -8,9 +8,8 @@
 <meta name="theme-color" content="#111827">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poker Semanal">
+<meta name="apple-mobile-web-app-title" content="Poker">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -29,10 +28,10 @@
 body{font-family:'Outfit',sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh;max-width:480px;margin:0 auto;}
 .header{background:var(--gray-900);color:white;padding:20px 20px 16px;}
 .header-top{display:flex;justify-content:space-between;align-items:center;}
-.app-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;letter-spacing:-.3px;}
+.app-title{font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.3px;}
 .app-title span{color:var(--green-mid);}
-.header-badge{background:var(--green);color:white;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;}
-.header-sub{font-size:12px;color:var(--gray-400);margin-top:4px;}
+.header-badge{background:var(--green);color:white;font-size:13px;font-weight:600;padding:4px 11px;border-radius:20px;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.header-sub{font-size:14px;color:var(--gray-400);margin-top:5px;text-align:center;}
 .tabs{display:flex;background:var(--green);overflow-x:auto;}
 .tab{flex:0 0 auto;min-width:60px;padding:12px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,0.65);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;}
 .tab.active{color:#fff;font-weight:700;border-bottom-color:#fff;}
@@ -253,6 +252,19 @@ body{font-family:'Outfit',sans-serif;background:var(--gray-50);color:var(--gray-
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gray-900);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;transition:transform .3s;z-index:999;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+/* ── Configurações & administração (rodapé da aba Novo) ── */
+.admin-card{margin-top:14px;}
+.admin-group{padding:12px 0;border-bottom:1px solid var(--gray-100);}
+.admin-group:first-of-type{padding-top:2px;}
+.admin-group:last-child{border-bottom:none;padding-bottom:2px;}
+.admin-group-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:9px;}
+.admin-actions{display:flex;gap:9px;flex-wrap:wrap;}
+.admin-link{display:inline-flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;color:var(--gray-800);cursor:pointer;background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:11px;padding:10px 14px;transition:background .15s,border-color .15s;user-select:none;}
+.admin-link:hover{background:var(--gray-100);border-color:var(--gray-400);}
+.admin-link-danger{color:var(--red);background:var(--red-light);border-color:#f6b4b4;}
+.admin-link-danger:hover{background:#fbcfcf;border-color:var(--red);}
+.admin-status{font-size:13px;font-weight:500;margin-top:9px;color:var(--gray-600);min-height:2px;}
+.admin-danger .admin-group-label{color:var(--red);}
 </style>
 </head>
 <body>
@@ -304,21 +316,42 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
     <div id="chips-novos"></div>
   </div>
   <button class="btn-primary" onclick="iniciarTorneio()">▶ Iniciar Torneio</button>
-  <div style="text-align:center;margin-top:12px;">
-    <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="abrirConfigurarSenha()">⚙️ Configurar senha do responsável</span>
-  </div>
-  <div style="text-align:center;margin-top:8px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-    <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="exportarBackupJSON()">💾 Exportar backup (.json)</span>
-    <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="document.getElementById('input-import-backup').click()">📤 Importar backup (.json)</span>
-    <input type="file" id="input-import-backup" accept=".json,application/json" style="display:none;" onchange="importarBackupJSON(event)">
-  </div>
-  <div id="backup-status" style="text-align:center;margin-top:6px;font-size:12px;"></div>
-  <div style="text-align:center;margin-top:8px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-    <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="abrirRenomearJogador()">✏️ Renomear jogador</span>
-    <span style="font-size:14px;font-weight:500;color:var(--red);cursor:pointer;text-decoration:underline;" onclick="abrirExcluirTorneio()">🗑️ Excluir torneio</span>
-  </div>
-  <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:1px dashed var(--gray-200);">
-    <span style="font-size:13px;font-weight:600;color:var(--red);cursor:pointer;" onclick="abrirZerarTudo()">🧹 Zerar tudo (novo grupo)</span>
+
+  <div class="card admin-card">
+    <div class="card-title">Configurações &amp; administração</div>
+
+    <div class="admin-group">
+      <div class="admin-group-label">Torneio</div>
+      <div class="admin-actions">
+        <span class="admin-link" onclick="abrirConfigNome()">🏷️ Nome do torneio/grupo</span>
+        <span class="admin-link" onclick="abrirConfigurarSenha()">⚙️ Senha do responsável</span>
+      </div>
+    </div>
+
+    <div class="admin-group">
+      <div class="admin-group-label">Backup dos dados</div>
+      <div class="admin-actions">
+        <span class="admin-link" onclick="exportarBackupJSON()">💾 Exportar (.json)</span>
+        <span class="admin-link" onclick="document.getElementById('input-import-backup').click()">📤 Importar (.json)</span>
+        <input type="file" id="input-import-backup" accept=".json,application/json" style="display:none;" onchange="importarBackupJSON(event)">
+      </div>
+      <div id="backup-status" class="admin-status"></div>
+    </div>
+
+    <div class="admin-group">
+      <div class="admin-group-label">Jogadores &amp; torneios</div>
+      <div class="admin-actions">
+        <span class="admin-link" onclick="abrirRenomearJogador()">✏️ Renomear jogador</span>
+        <span class="admin-link" onclick="abrirExcluirTorneio()">🗑️ Excluir torneio</span>
+      </div>
+    </div>
+
+    <div class="admin-group admin-danger">
+      <div class="admin-group-label">Zona de risco</div>
+      <div class="admin-actions">
+        <span class="admin-link admin-link-danger" onclick="abrirZerarTudo()">🧹 Zerar tudo (novo grupo)</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -443,9 +476,10 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 
 <!-- ══ RANKING ══ -->
 <div class="screen" id="screen-ranking">
+  <div id="ranking-periodo" style="margin-bottom:10px;"></div>
   <div class="stats-grid" id="ranking-stats"></div>
   <div class="card" style="padding:12px;">
-    <div class="card-title" style="padding:0 4px;">Temporada 2026 — Classificação geral</div>
+    <div class="card-title" style="padding:0 4px;" id="ranking-titulo">Temporada — Classificação</div>
     <div class="rank-header">
       <span style="text-align:center">#</span>
       <span>Jogador</span>
@@ -561,6 +595,16 @@ let historico = (() => {
     arr = seedOff ? [] : _seed.slice();
   }
   return arr.map(normalizarTorneio);
+})();
+
+// Auto-recuperação: se a lista de jogadores estiver vazia mas houver histórico,
+// repõe os nomes a partir de quem já jogou (conserta imports feitos em versões antigas).
+(function reporJogadoresSeVazio() {
+  if ((!JOGADORES_FIXOS || !JOGADORES_FIXOS.length) && historico.length) {
+    const s = new Set();
+    historico.forEach(t => (t.jogadores || []).forEach(j => { if (j.nome) s.add(j.nome); }));
+    if (s.size) { JOGADORES_FIXOS = [...s]; salvarJogadoresFixos(); }
+  }
 })();
 
 // ── Init
@@ -753,11 +797,21 @@ function atualizarSummary() {
   document.getElementById('sum-liquido').textContent = `R$ ${liquido}`;
 }
 
+// Nome do grupo/torneio exibido no cabeçalho (editável). Padrão: "Torneio {ano}".
+function nomeGrupo() {
+  const n = (localStorage.getItem('poker_nome_grupo') || '').trim();
+  return n || `Torneio ${new Date().getFullYear()}`;
+}
+
 function atualizarHeader() {
   const badge = document.getElementById('header-badge');
   const sub   = document.getElementById('header-sub');
   const extra = document.getElementById('header-extra');
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Badge = nome do torneio/grupo (no lugar do ano)
+  badge.textContent = nomeGrupo();
+  badge.style.background = '#1f2937';
 
   // Último torneio finalizado
   const ultimo = historico.find(t => t.colocacoes);
@@ -765,15 +819,11 @@ function atualizarHeader() {
   if (ultimo) {
     const d = new Date(ultimo.data+'T12:00:00');
     const winner = ultimo.colocacoes['1'] || '—';
-    ultimoHtml = `<span style="background:rgba(255,255,255,0.1);border-radius:10px;padding:2px 8px;font-size:10px;color:#d1fae5;">
-      🏆 ${winner} &nbsp;•&nbsp; ${d.getDate()} ${meses[d.getMonth()]}
-    </span>`;
+    ultimoHtml = `<span style="background:rgba(255,255,255,0.1);border-radius:10px;padding:2px 8px;font-size:12px;color:#d1fae5;">🏆 ${winner} &nbsp;•&nbsp; ${d.getDate()} ${meses[d.getMonth()]}</span>`;
   }
 
   if (!state.ativo) {
-    badge.textContent = '2026';
-    badge.style.background = '#374151';
-    sub.innerHTML = ultimoHtml ? `<span style="font-size:10px;color:#9ca3af;margin-right:6px;">Último:</span>${ultimoHtml}` : 'Nenhum torneio ativo';
+    sub.innerHTML = ultimoHtml ? `<span style="font-size:12px;color:#9ca3af;margin-right:6px;">Último:</span>${ultimoHtml}` : 'Nenhum torneio ativo';
     if (extra) extra.style.display = 'none';
     ajustarTopbar();
     return;
@@ -781,16 +831,44 @@ function atualizarHeader() {
 
   const d = new Date(state.data+'T12:00:00');
   const dataFmt = `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
-  badge.textContent = `● Em andamento`;
-  badge.style.background = '#16a34a';
-  sub.innerHTML = `<span style="color:#22c55e;font-weight:500;">Torneio ${dataFmt}</span>
+  sub.innerHTML = `<span style="color:#22c55e;font-weight:600;">● Em andamento</span>
     <span style="color:#6b7280;margin:0 6px;">•</span>
-    <span style="color:#9ca3af;">${state.jogadores.length} jogadores</span>`;
+    <span style="color:#9ca3af;">${dataFmt} · ${state.jogadores.length} jog.</span>`;
   if (extra && ultimoHtml) {
     extra.style.display = 'flex';
-    extra.innerHTML = `<span style="font-size:10px;color:#6b7280;margin-right:4px;">Anterior:</span>${ultimoHtml}`;
+    extra.style.justifyContent = 'center';
+    extra.innerHTML = `<span style="font-size:12px;color:#6b7280;margin-right:4px;">Anterior:</span>${ultimoHtml}`;
   }
   ajustarTopbar();
+}
+
+// ── Configurar nome do torneio/grupo
+function abrirConfigNome() {
+  const atual = (localStorage.getItem('poker_nome_grupo') || '');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-nome';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">🏷️ Nome do torneio/grupo</div>
+      <div class="modal-sub">Aparece no topo do app. Ex.: "Poker da Firma", "Homegame dos Amigos". Deixe em branco para usar o padrão "Torneio ${new Date().getFullYear()}".</div>
+      <input class="modal-input" type="text" id="input-nome-grupo" maxlength="28" placeholder="Torneio ${new Date().getFullYear()}" value="${atual.replace(/"/g,'&quot;')}"
+        onkeydown="if(event.key==='Enter')salvarNomeGrupo()">
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="fecharModal()" style="width:auto;padding:12px 16px;">Cancelar</button>
+        <button class="btn-primary" onclick="salvarNomeGrupo()" style="box-shadow:none;">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('input-nome-grupo').focus(), 100);
+}
+function salvarNomeGrupo() {
+  const v = document.getElementById('input-nome-grupo').value.trim();
+  if (v) localStorage.setItem('poker_nome_grupo', v);
+  else localStorage.removeItem('poker_nome_grupo');
+  fecharModal();
+  atualizarHeader();
+  showToast('🏷️ Nome atualizado!');
 }
 
 // ── Ir para colocações
@@ -870,13 +948,29 @@ function _copiarTexto(txt) {
   }
 }
 function _fmtDataBR(d) { try { return new Date(d + 'T12:00:00').toLocaleDateString('pt-BR'); } catch (e) { return d || ''; } }
-function copiarCobrancaGrupo() {
-  const c = _ultimoConsolidado; if (!c) return;
+function _textoCobrancaGrupo() {
+  const c = _ultimoConsolidado; if (!c) return null;
   const pagam = c.linhas.filter(l => l.saldo < 0).sort((a, b) => a.saldo - b.saldo);
-  if (!pagam.length) { showToast('Ninguém tem valor a pagar'); return; }
+  if (!pagam.length) return null;
   const linhas = pagam.map(l => `• ${l.nome}: R$ ${Math.abs(l.saldo).toFixed(2).replace('.', ',')}`).join('\n');
-  const txt = `🃏 Acerto do torneio ${_fmtDataBR(c.data)}\nPIX ${c.pix_nome} — ${c.pix_num}\n\n💸 Quem paga:\n${linhas}\n\nMandem o comprovante quando fizerem o PIX. Valeu!`;
+  return `🃏 Acerto do torneio ${_fmtDataBR(c.data)}\nPIX ${c.pix_nome} — ${c.pix_num}\n\n💸 Quem paga:\n${linhas}\n\nMandem o comprovante quando fizerem o PIX. Valeu!`;
+}
+function copiarCobrancaGrupo() {
+  const txt = _textoCobrancaGrupo();
+  if (!txt) { showToast('Ninguém tem valor a pagar'); return; }
   _copiarTexto(txt);
+}
+function compartilharCobrancaGrupo() {
+  const txt = _textoCobrancaGrupo();
+  if (!txt) { showToast('Ninguém tem valor a pagar'); return; }
+  // Celular: abre a folha de compartilhar nativa (escolhe WhatsApp → grupo, texto já colado)
+  if (navigator.share) {
+    navigator.share({ text: txt }).then(() => showToast('📲 Compartilhado!')).catch(() => {});
+    return;
+  }
+  // Notebook (sem compartilhar nativo): copia + abre o WhatsApp Web pra escolher o grupo
+  _copiarTexto(txt);
+  try { window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); } catch (e) {}
 }
 function copiarCobrancaJogador(nome) {
   const c = _ultimoConsolidado; if (!c) return;
@@ -927,7 +1021,7 @@ function buildRateioHtml(torneio) {
   paga.forEach(l => { const s = l.nome.replace(/'/g, "\\'"); html += `<div class="breakdown-row"><span>${l.nome} <button onclick="copiarCobrancaJogador('${s}')" title="Copiar cobrança de ${l.nome}" style="border:none;background:transparent;cursor:pointer;font-size:12px;padding:0 2px;">📋</button></span><span style="font-weight:700;color:var(--red)">${money(l.saldo)}</span></div>`; });
   zero.forEach(l => { html += `<div class="breakdown-row"><span>${l.nome} <span style="font-size:11px;color:var(--gray-400)">(zerado)</span></span><span style="font-weight:600;color:var(--gray-500)">R$ 0,00</span></div>`; });
   html += `<div class="breakdown-row total"><span>Caixa retém (fundo ranking)</span><span style="color:var(--amber)">${money(torneio.ranking)}</span></div>`;
-  if (paga.length) html += `<button class="btn-secondary" onclick="copiarCobrancaGrupo()" style="margin-top:10px;border-color:var(--gray-900);color:var(--gray-900);">📋 Copiar cobrança do grupo (PIX)</button>`;
+  if (paga.length) html += `<button class="btn-secondary" onclick="compartilharCobrancaGrupo()" style="margin-top:10px;border-color:#128C7E;color:#128C7E;font-weight:700;">📲 Enviar no WhatsApp</button><button class="btn-secondary" onclick="copiarCobrancaGrupo()" style="margin-top:8px;border-color:var(--gray-900);color:var(--gray-900);">📋 Copiar cobrança do grupo (PIX)</button>`;
   html += `</div>`;
   return html;
 }
@@ -1173,7 +1267,7 @@ function abrirModalValidacao() {
 }
 
 function fecharModal() {
-  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro','modal-desempenho-jogador','modal-zerar'].forEach(id => {
+  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro','modal-desempenho-jogador','modal-zerar','modal-nome'].forEach(id => {
     const m = document.getElementById(id);
     if (m) m.remove();
   });
@@ -1393,7 +1487,7 @@ function abrirZerarTudo() {
   overlay.innerHTML = `
     <div class="modal-box">
       <div class="modal-title">🧹 Zerar tudo</div>
-      <div class="modal-sub">Apaga <strong>todo o histórico</strong>, jogadores e senha deste dispositivo, deixando o app pronto para um novo grupo começar do zero. <strong>Não dá para desfazer.</strong> Faça um backup antes, se quiser guardar.</div>
+      <div class="modal-sub">⚠️ Isto apaga os dados <strong>deste app</strong> (histórico, jogadores, senha). Um <strong>backup é baixado automaticamente</strong> antes, por segurança.<br><br>Para dar um app limpo a um amigo, <strong>não zere o seu</strong> — envie o arquivo separado <em>poker_app_LIMPO.html</em> (ou um link limpo). Assim o seu grupo fica intacto.</div>
       <input class="modal-input" type="password" id="zerar-senha" placeholder="Senha do responsável" maxlength="20" style="letter-spacing:4px;"
         onkeydown="if(event.key==='Enter')confirmarZerarTudo()">
       <div class="modal-error" id="zerar-erro"></div>
@@ -1416,6 +1510,9 @@ function confirmarZerarTudo() {
   zerarTudo();
 }
 function zerarTudo() {
+  // REDE DE SEGURANÇA: baixa um backup completo ANTES de apagar qualquer coisa.
+  // Assim, mesmo zerando por engano, dá para restaurar pelo "Importar backup".
+  try { if (historico.length) exportarBackupJSON(true); } catch (e) {}
   historico = [];
   localStorage.setItem('poker_historico', '[]');
   localStorage.setItem('poker_seed_off', '1');       // não reinjeta o seed no reload
@@ -1424,8 +1521,8 @@ function zerarTudo() {
   salvarEstado();
   sessionStorage.removeItem('poker_pending');
   ['poker_last_backup','poker_backup_auto','poker_senha'].forEach(k => localStorage.removeItem(k));
-  showToast('🧹 Tudo zerado — pronto para um novo grupo!');
-  setTimeout(() => location.reload(), 900);
+  showToast('🧹 Zerado. Um backup foi baixado antes, por segurança.');
+  setTimeout(() => location.reload(), 1300);
 }
 
 // ── Backup completo (JSON) — exporta todo o histórico salvo neste dispositivo/navegador
@@ -1486,10 +1583,17 @@ function importarBackupJSON(event) {
       if (!Array.isArray(importado)) throw new Error('Formato inválido');
       const existentes = new Set(historico.map(t => t.data));
       const novos = importado.filter(t => !existentes.has(t.data));
-      historico = [...historico, ...novos].sort((a,b) => b.data.localeCompare(a.data));
+      historico = [...historico, ...novos].map(normalizarTorneio).sort((a,b) => b.data.localeCompare(a.data));
       localStorage.setItem('poker_historico', JSON.stringify(historico));
-      renderHistorico(); renderHistTorneios(); renderRanking();
-      showToast(`✅ Backup importado! ${novos.length} torneio(s) novo(s) adicionado(s).`);
+      // Restaura a senha do backup, se houver (recuperação completa)
+      if (data && data.senha) localStorage.setItem('poker_senha', data.senha);
+      // Repõe a lista de jogadores a partir de quem aparece no histórico (não deixa vazio após um reset)
+      const participantes = new Set(JOGADORES_FIXOS);
+      historico.forEach(t => (t.jogadores || []).forEach(j => { if (j.nome) participantes.add(j.nome); }));
+      JOGADORES_FIXOS = [...participantes];
+      salvarJogadoresFixos();
+      renderChipsFixos(); renderHistorico(); renderHistTorneios(); renderRanking();
+      showToast(`✅ Backup importado! ${novos.length} torneio(s) restaurado(s).`);
     } catch (err) {
       showToast('❌ Arquivo de backup inválido.');
     }
@@ -1811,10 +1915,39 @@ function _construirFontesPorData() {
   return fontes;
 }
 
-function calcularRanking() {
+// Anos que têm dados (para o seletor de temporada)
+function anosComDados() {
+  const anos = new Set();
+  Object.keys(RESULTADOS_HISTORICOS).forEach(d => anos.add(d.slice(0,4)));
+  historico.forEach(t => { if (t.data) anos.add(t.data.slice(0,4)); });
+  return [...anos].sort();
+}
+function anoRankingAtivo() {
+  const salvo = localStorage.getItem('poker_ranking_ano');
+  if (salvo) return salvo;
+  const anos = anosComDados();
+  return anos.length ? anos[anos.length-1] : String(new Date().getFullYear());
+}
+function mudarAnoRanking(delta) {
+  localStorage.setItem('poker_ranking_ano', String(Number(anoRankingAtivo()) + delta));
+  renderRanking();
+}
+function fecharTemporada() {
+  const ano = anoRankingAtivo();
+  const n = historico.filter(t => (t.data||'').startsWith(ano)).length;
+  const prox = String(Number(ano) + 1);
+  if (!confirm(`Fechar a temporada ${ano} e abrir ${prox}?\n\n• Um backup é baixado por segurança.\n• NADA é apagado — os ${n} torneio(s) de ${ano} continuam no histórico e o ranking de ${ano} pode ser consultado sempre (voltando com o ‹).\n• O ranking passa a mostrar ${prox}. Torneios com data de ${prox} contam para a nova temporada.`)) return;
+  try { if (historico.length) exportarBackupJSON(true); } catch (e) {}
+  localStorage.setItem('poker_ranking_ano', prox);
+  renderRanking();
+  showToast(`🏁 Temporada ${ano} encerrada! Ranking agora em ${prox}.`);
+}
+
+function calcularRanking(ano) {
   const pts = {};
   const fontes = _construirFontesPorData();
-  Object.values(fontes).forEach(cols => {
+  Object.entries(fontes).forEach(([data, cols]) => {
+    if (ano && !String(data).startsWith(ano)) return;
     cols.filter(c=>c.nome).forEach(c => {
       if (!pts[c.nome]) pts[c.nome]={pontos:0,vitorias:0,podios:0,jogos:0};
       pts[c.nome].pontos += c.pontos;
@@ -1827,12 +1960,35 @@ function calcularRanking() {
 }
 
 function renderRanking() {
-  const rank = calcularRanking();
+  const ano = anoRankingAtivo();
+  const rank = calcularRanking(ano);
   const maxPts = rank[0]?.pontos || 1;
+  const torneiosAno = historico.filter(t => (t.data||'').startsWith(ano));
+  const anos = anosComDados();
+  const ehUltimoAno = !anos.length || ano >= anos[anos.length-1];
 
-  // Stats cards
+  // Seletor de temporada (ano)
+  const periodoEl = document.getElementById('ranking-periodo');
+  if (periodoEl) {
+    periodoEl.innerHTML = `
+      <div class="card" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <button onclick="mudarAnoRanking(-1)" style="border:1.5px solid var(--gray-200);background:#fff;border-radius:8px;width:38px;height:38px;font-size:18px;cursor:pointer;flex-shrink:0;">‹</button>
+        <div style="text-align:center;">
+          <div style="font-size:9px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;">Temporada</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;line-height:1;">${ano}</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${torneiosAno.length} torneio(s)</div>
+        </div>
+        <button onclick="mudarAnoRanking(1)" style="border:1.5px solid var(--gray-200);background:#fff;border-radius:8px;width:38px;height:38px;font-size:18px;cursor:pointer;flex-shrink:0;">›</button>
+      </div>
+      ${(ehUltimoAno && torneiosAno.length) ? `<button class="btn-secondary" onclick="fecharTemporada()" style="margin-top:8px;border-color:var(--amber);color:#92400e;">🏁 Fechar temporada ${ano} e iniciar ${Number(ano)+1}</button>` : ''}`;
+  }
+  const tituloEl = document.getElementById('ranking-titulo');
+  if (tituloEl) tituloEl.textContent = `Temporada ${ano} — Classificação`;
+
+  // Stats cards (do ano selecionado)
   const lider = rank[0];
   const maisVitorias = [...rank].sort((a,b)=>b.vitorias-a.vitorias)[0];
+  const fundoAno = torneiosAno.reduce((s,t)=>s+(t.ranking||0),0);
   document.getElementById('ranking-stats').innerHTML = `
     <div class="stat-card"><div class="stat-label">Líder da temporada</div>
       <div class="stat-val" style="font-size:18px;">${lider?.nome||'—'}</div>
@@ -1841,14 +1997,15 @@ function renderRanking() {
       <div class="stat-val" style="font-size:18px;">${maisVitorias?.nome||'—'}</div>
       <div class="stat-sub">${maisVitorias?.vitorias||0} 🏆</div></div>
     <div class="stat-card"><div class="stat-label">Torneios na temporada</div>
-      <div class="stat-val">${historico.length}</div>
-      <div class="stat-sub">realizados em 2026</div></div>
-    <div class="stat-card"><div class="stat-label">Fundo ranking</div>
-      <div class="stat-val" style="font-size:18px;">R$ ${historico.reduce((s,t)=>s+t.ranking,0).toFixed(0)}</div>
-      <div class="stat-sub">acumulado total</div></div>`;
+      <div class="stat-val">${torneiosAno.length}</div>
+      <div class="stat-sub">realizados em ${ano}</div></div>
+    <div class="stat-card"><div class="stat-label">Fundo ranking ${ano}</div>
+      <div class="stat-val" style="font-size:18px;">R$ ${fundoAno.toFixed(0)}</div>
+      <div class="stat-sub">acumulado no ano</div></div>`;
 
   // Tabela ranking
   const list = document.getElementById('ranking-list'); list.innerHTML='';
+  if (!rank.length) list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--gray-400);font-size:13px;">Nenhum torneio na temporada ${ano} ainda.</div>`;
   rank.forEach((j,i) => {
     const posClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
     const posEmoji = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
@@ -1867,7 +2024,7 @@ function renderRanking() {
   // Últimos pódios
   const ul = document.getElementById('ranking-ultimos'); ul.innerHTML='';
   const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  historico.slice(0,5).forEach(t => {
+  torneiosAno.slice(0,5).forEach(t => {
     if (!t.colocacoes) return;
     const d = new Date(t.data+'T12:00:00');
     const div = document.createElement('div'); div.className='hist-item';
@@ -2422,13 +2579,8 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'),2000);
 }
 </script>
-
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW falhou:', err));
-  });
-}
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW falhou:',e)); }); }
 </script>
 </body>
 </html>
