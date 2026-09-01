@@ -312,9 +312,13 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
     <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="document.getElementById('input-import-backup').click()">📤 Importar backup (.json)</span>
     <input type="file" id="input-import-backup" accept=".json,application/json" style="display:none;" onchange="importarBackupJSON(event)">
   </div>
+  <div id="backup-status" style="text-align:center;margin-top:6px;font-size:12px;"></div>
   <div style="text-align:center;margin-top:8px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
     <span style="font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;text-decoration:underline;" onclick="abrirRenomearJogador()">✏️ Renomear jogador</span>
     <span style="font-size:14px;font-weight:500;color:var(--red);cursor:pointer;text-decoration:underline;" onclick="abrirExcluirTorneio()">🗑️ Excluir torneio</span>
+  </div>
+  <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:1px dashed var(--gray-200);">
+    <span style="font-size:13px;font-weight:600;color:var(--red);cursor:pointer;" onclick="abrirZerarTudo()">🧹 Zerar tudo (novo grupo)</span>
   </div>
 </div>
 
@@ -375,6 +379,19 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
     </div>
     <p style="font-size:12px;color:var(--gray-400);margin-top:8px;">Demais jogadores recebem 5 pts cada.</p>
   </div>
+
+  <!-- ══ CUSTOS EXTRAS / DEALERS ══ -->
+  <div class="placement-section" id="custos-extras-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="placement-title" style="margin-bottom:0;">🧾 Custos extras</div>
+      <span style="font-size:11px;color:var(--gray-400);">opcional</span>
+    </div>
+    <p style="font-size:12px;color:var(--gray-400);margin:6px 0 10px;">Ex.: dealer, churrasco, bebidas, baralho, aluguel de mesa. O valor é rateado entre os jogadores. Marque <strong>"Dealer que jogou"</strong> se um jogador atuou como dealer (recebe e sai do rateio), e <strong>"Adiantado por"</strong> se alguém pagou do próprio bolso (é reembolsado).</p>
+    <div id="custos-lista"></div>
+    <button class="btn-secondary" onclick="addCustoExtra()" style="border-style:dashed;margin-top:2px;">+ Adicionar custo extra</button>
+    <div id="custos-rateio-preview" style="margin-top:10px;"></div>
+  </div>
+
   <button class="btn-primary" onclick="finalizarTorneio()">✅ Confirmar & Ver Resultado</button>
   <button class="btn-secondary" onclick="showTab('torneio')">← Voltar ao torneio</button>
 </div>
@@ -393,6 +410,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
       <div class="ct-wrap"><table class="ct" id="pre-table"></table></div>
       <div id="pre-totals" style="margin-top:8px;"></div>
     </div>
+    <div id="pre-rateio"></div>
     <div id="pre-action-btns" style="margin-top:4px;"></div>
   </div>
   <!-- Resultado final (visível após validação) -->
@@ -459,6 +477,10 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
     <div id="desemp-legenda" class="desemp-legenda"></div>
     <div id="desemp-grafico"></div>
   </div>
+  <div class="card">
+    <div class="card-title">Entradas por jogador — Buy-in / Rebuy / Add-on</div>
+    <div id="desemp-entradas"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -475,39 +497,70 @@ function salvarJogadoresFixos() { localStorage.setItem('poker_jogadores_fixos', 
 // Dados históricos importados da planilha
 const RESULTADOS_HISTORICOS = {"2026-01-14":[{"pos":1,"nome":"Richard","pontos":35},{"pos":2,"nome":"Kiik","pontos":25},{"pos":3,"nome":"CD","pontos":15},{"pos":4,"nome":"Genival","pontos":5},{"pos":5,"nome":"Danilo","pontos":5},{"pos":6,"nome":"CA","pontos":5},{"pos":7,"nome":"Marcos","pontos":5}],"2026-01-29":[{"pos":1,"nome":"Caio","pontos":35},{"pos":2,"nome":"Evandro","pontos":25},{"pos":3,"nome":"Richard","pontos":15},{"pos":4,"nome":"Genival","pontos":5},{"pos":5,"nome":"Danilo","pontos":5},{"pos":6,"nome":"CD","pontos":5},{"pos":7,"nome":"Diogo","pontos":5},{"pos":8,"nome":"Kiik","pontos":5},{"pos":9,"nome":"Basoli","pontos":5},{"pos":10,"nome":"Wendel","pontos":5}],"2026-02-12":[{"pos":1,"nome":"Wendel","pontos":35},{"pos":2,"nome":"CD","pontos":25},{"pos":3,"nome":"Wilcker","pontos":15},{"pos":4,"nome":"Genival","pontos":5},{"pos":5,"nome":"Danilo","pontos":5},{"pos":6,"nome":"Kimura","pontos":5},{"pos":7,"nome":"Caio","pontos":5},{"pos":8,"nome":"Kiik","pontos":5},{"pos":9,"nome":"Favero","pontos":5}],"2026-02-25":[{"pos":1,"nome":"CD","pontos":35},{"pos":2,"nome":"Richard","pontos":25},{"pos":3,"nome":"Danilo","pontos":15},{"pos":4,"nome":"Basoli","pontos":5},{"pos":5,"nome":"Genival","pontos":5},{"pos":6,"nome":"Wendel","pontos":5},{"pos":7,"nome":"Wilcker","pontos":5}],"2026-03-04":[{"pos":1,"nome":"Kiik","pontos":35},{"pos":2,"nome":"Danilo","pontos":25},{"pos":3,"nome":"Wilcker","pontos":15},{"pos":4,"nome":"Ricardo","pontos":5},{"pos":5,"nome":"Richard","pontos":5},{"pos":6,"nome":"Wendel","pontos":5}],"2026-03-10":[{"pos":1,"nome":"CD","pontos":35},{"pos":2,"nome":"Danilo","pontos":25},{"pos":3,"nome":"Ricardo","pontos":15},{"pos":4,"nome":"Richard","pontos":5},{"pos":5,"nome":"Genival","pontos":5},{"pos":6,"nome":"Kiik","pontos":5},{"pos":7,"nome":"Caio","pontos":5}],"2026-03-18":[{"pos":1,"nome":"Ricardo","pontos":35},{"pos":2,"nome":"CD","pontos":25},{"pos":3,"nome":"Danilo","pontos":15},{"pos":4,"nome":"Wendel","pontos":5},{"pos":5,"nome":"Kiik","pontos":5},{"pos":6,"nome":"Basoli","pontos":5},{"pos":7,"nome":"Caio","pontos":5},{"pos":8,"nome":"Diogo","pontos":5}],"2026-03-24":[{"pos":1,"nome":"Kimura","pontos":35},{"pos":2,"nome":"Wilcker","pontos":25},{"pos":3,"nome":"CD","pontos":15},{"pos":4,"nome":"Richard","pontos":5},{"pos":5,"nome":"Ricardo","pontos":5},{"pos":6,"nome":"Kiik","pontos":5},{"pos":7,"nome":"Favero","pontos":5},{"pos":8,"nome":"Danilo","pontos":5},{"pos":9,"nome":"Diogo","pontos":5},{"pos":10,"nome":"Marcos","pontos":5}],"2026-03-31":[{"pos":1,"nome":"Kiik","pontos":35},{"pos":2,"nome":"Marcos","pontos":25},{"pos":3,"nome":"CA","pontos":15},{"pos":4,"nome":"Richard","pontos":5},{"pos":5,"nome":"Ricardo","pontos":5},{"pos":6,"nome":"Danilo","pontos":5},{"pos":7,"nome":"CD","pontos":5}],"2026-04-08":[{"pos":1,"nome":"Marcos","pontos":35},{"pos":2,"nome":"Richard","pontos":25},{"pos":3,"nome":"Wilcker","pontos":15},{"pos":4,"nome":"Basoli","pontos":5},{"pos":5,"nome":"Alex","pontos":5},{"pos":6,"nome":"Ricardo","pontos":5},{"pos":7,"nome":"CD","pontos":5}],"2026-04-14":[{"pos":1,"nome":"CD","pontos":35},{"pos":2,"nome":"Marcos","pontos":25},{"pos":3,"nome":"Diogo","pontos":15},{"pos":4,"nome":"Kiik","pontos":5},{"pos":5,"nome":"Richard","pontos":5},{"pos":6,"nome":"Ricardo","pontos":5},{"pos":7,"nome":"Danilo","pontos":5},{"pos":8,"nome":"JP","pontos":5}],"2026-04-22":[{"pos":1,"nome":"CD","pontos":35},{"pos":2,"nome":"Ricardo","pontos":25},{"pos":3,"nome":"Richard","pontos":15},{"pos":4,"nome":"Basoli","pontos":5},{"pos":5,"nome":"Kiik","pontos":5},{"pos":6,"nome":"Marcos","pontos":5},{"pos":7,"nome":"Danilo","pontos":5}],"2026-04-28":[{"pos":1,"nome":"Jesus","pontos":35},{"pos":2,"nome":"Basoli","pontos":25},{"pos":3,"nome":"Wendel","pontos":15},{"pos":4,"nome":"Ricardo","pontos":5},{"pos":5,"nome":"CD","pontos":5},{"pos":6,"nome":"Danilo","pontos":5},{"pos":7,"nome":"Kiik","pontos":5},{"pos":8,"nome":"Caio","pontos":5},{"pos":9,"nome":"Richard","pontos":5},{"pos":10,"nome":"Favero","pontos":5},{"pos":11,"nome":"Genival","pontos":5},{"pos":12,"nome":"JP","pontos":5},{"pos":13,"nome":"Marcos","pontos":5}],"2026-05-05":[{"pos":1,"nome":"Ricardo","pontos":35},{"pos":2,"nome":"Wendel","pontos":25},{"pos":3,"nome":"Jesus","pontos":15},{"pos":4,"nome":"Basoli","pontos":5},{"pos":5,"nome":"CD","pontos":5},{"pos":6,"nome":"JP","pontos":5},{"pos":7,"nome":"Marcos","pontos":5},{"pos":8,"nome":"Danilo","pontos":5}],"2026-05-13":[{"pos":1,"nome":"Genival","pontos":35},{"pos":2,"nome":"Jesus","pontos":25},{"pos":3,"nome":"Wendel","pontos":15},{"pos":4,"nome":"Kiik","pontos":5},{"pos":5,"nome":"Basoli","pontos":5},{"pos":6,"nome":"Ricardo","pontos":5},{"pos":7,"nome":"Marcos","pontos":5},{"pos":8,"nome":"CD","pontos":5}],"2026-05-26":[{"pos":1,"nome":"CD","pontos":35},{"pos":2,"nome":"Ricardo","pontos":25},{"pos":3,"nome":"Genival","pontos":15},{"pos":4,"nome":"Basoli","pontos":5},{"pos":5,"nome":"Kiik","pontos":5},{"pos":6,"nome":"Caio","pontos":5},{"pos":7,"nome":"Wendel","pontos":5},{"pos":8,"nome":"CA","pontos":5}]};
 
-let state = {data:'',buyin:30,jogadores:[],ativo:false,jogadoresTemp:[]};
+let state = {data:'',buyin:30,jogadores:[],ativo:false,jogadoresTemp:[],custosExtras:[]};
 
 // Seed histórico
 const _seed = [{"data":"2026-08-04","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Duarte","entradas":3,"gastos":90,"pos":1},{"nome":"Ricardo","entradas":5,"gastos":150,"pos":2},{"nome":"Hugo","entradas":2,"gastos":60,"pos":3},{"nome":"CD","entradas":4,"gastos":120,"pos":4},{"nome":"Jesus","entradas":4,"gastos":120,"pos":5},{"nome":"Marcos","entradas":3,"gastos":90,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"Basoli","entradas":3,"gastos":90,"pos":8},{"nome":"Wendel","entradas":2,"gastos":60,"pos":9}],"total":870,"ranking":87,"liquido":783,"colocacoes":{"1":"Duarte","2":"Ricardo","3":"Hugo"},"timestamp":1785898409461},{"data":"2026-07-30","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Hugo","entradas":3,"gastos":90,"pos":1},{"nome":"Ricardo","entradas":3,"gastos":90,"pos":2},{"nome":"Wendel","entradas":5,"gastos":150,"pos":3},{"nome":"Marcos","entradas":5,"gastos":150,"pos":4},{"nome":"Danilo","entradas":4,"gastos":120,"pos":5},{"nome":"Genival","entradas":4,"gastos":120,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"Jesus","entradas":3,"gastos":90,"pos":8},{"nome":"Basoli","entradas":3,"gastos":90,"pos":9},{"nome":"CD","entradas":2,"gastos":60,"pos":10},{"nome":"Duarte","entradas":2,"gastos":60,"pos":11},{"nome":"Marcel","entradas":2,"gastos":60,"pos":12},{"nome":"CA","entradas":2,"gastos":60,"pos":13},{"nome":"Caio","entradas":2,"gastos":60,"pos":14}],"total":1290,"ranking":129,"liquido":1161,"colocacoes":{"1":"Hugo","2":"Ricardo","3":"Wendel"},"timestamp":1785470308469},{"data":"2026-07-22","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":4,"gastos":120,"pos":1},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":2},{"nome":"Jesus","entradas":3,"gastos":90,"pos":3},{"nome":"Kiik","entradas":4,"gastos":120,"pos":4},{"nome":"Wendel","entradas":4,"gastos":120,"pos":5},{"nome":"Marcos","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Fernanda","entradas":2,"gastos":60,"pos":8}],"total":780,"ranking":78,"liquido":702,"colocacoes":{"1":"CD","2":"Ricardo","3":"Jesus"},"timestamp":1784776273778},{"data":"2026-07-14","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Jesus","entradas":4,"gastos":120,"pos":1},{"nome":"Danilo","entradas":2,"gastos":60,"pos":2},{"nome":"Wilcker","entradas":4,"gastos":120,"pos":3},{"nome":"Marcos","entradas":7,"gastos":210,"pos":4},{"nome":"Ricardo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":4,"gastos":120,"pos":6},{"nome":"Kiik","entradas":3,"gastos":90,"pos":7},{"nome":"CD","entradas":2,"gastos":60,"pos":8},{"nome":"Wendel","entradas":2,"gastos":60,"pos":9}],"total":1020,"ranking":102,"liquido":918,"colocacoes":{"1":"Jesus","2":"Danilo","3":"Wilcker"},"timestamp":1784091955721},{"data":"2026-07-07","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":6,"gastos":180,"pos":1},{"nome":"Jesus","entradas":3,"gastos":90,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":8,"gastos":240,"pos":4},{"nome":"JP","entradas":7,"gastos":210,"pos":5},{"nome":"Kiik","entradas":5,"gastos":150,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Marcos","entradas":2,"gastos":60,"pos":8},{"nome":"Danilo","entradas":1,"gastos":30,"pos":9}],"total":1170,"ranking":117,"liquido":1053,"colocacoes":{"1":"Wendel","2":"Jesus","3":"Ricardo"},"timestamp":1783480777691},{"data":"2026-07-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Wendel","entradas":5,"gastos":150,"pos":1},{"nome":"Ricardo","entradas":11,"gastos":330,"pos":2},{"nome":"Jesus","entradas":2,"gastos":60,"pos":3},{"nome":"Basoli","entradas":6,"gastos":180,"pos":4},{"nome":"CD","entradas":3,"gastos":90,"pos":5},{"nome":"Genival","entradas":3,"gastos":90,"pos":6},{"nome":"Kiik","entradas":2,"gastos":60,"pos":7},{"nome":"Danilo","entradas":1,"gastos":30,"pos":8}],"total":990,"ranking":99,"liquido":891,"colocacoes":{"1":"Wendel","2":"Ricardo","3":"Jesus"},"timestamp":1783049209845},{"data":"2026-06-25","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60,"pos":1},{"nome":"Jesus","entradas":2,"gastos":60,"pos":2},{"nome":"Marcos","entradas":4,"gastos":120,"pos":3},{"nome":"CD","entradas":5,"gastos":150,"pos":4},{"nome":"Kiik","entradas":5,"gastos":150,"pos":5},{"nome":"Danilo","entradas":3,"gastos":90,"pos":6},{"nome":"Wendel","entradas":3,"gastos":90,"pos":7},{"nome":"Wilcker","entradas":3,"gastos":90,"pos":8},{"nome":"Basoli","entradas":2,"gastos":60,"pos":9}],"total":870,"ranking":87,"liquido":783,"colocacoes":{"1":"Ricardo","2":"Jesus","3":"Marcos"},"timestamp":1782951599658},{"data":"2026-06-16","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"JP","entradas":5,"gastos":150,"pos":1},{"nome":"Kiik","entradas":2,"gastos":60,"pos":2},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":3},{"nome":"CD","entradas":7,"gastos":210,"pos":4},{"nome":"Marcos","entradas":5,"gastos":150,"pos":5},{"nome":"Genival","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Wendel","entradas":2,"gastos":60,"pos":8}],"total":900,"ranking":90,"liquido":810,"colocacoes":{"1":"JP","2":"Kiik","3":"Ricardo"},"timestamp":1781665135599},{"data":"2026-06-09","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"Kiik","entradas":2,"gastos":60,"pos":1},{"nome":"Wendel","entradas":7,"gastos":210,"pos":2},{"nome":"Fujita","entradas":4,"gastos":120,"pos":3},{"nome":"JP","entradas":9,"gastos":270,"pos":4},{"nome":"CD","entradas":6,"gastos":180,"pos":5},{"nome":"Caio","entradas":4,"gastos":120,"pos":6},{"nome":"Basoli","entradas":3,"gastos":90,"pos":7},{"nome":"Jesus","entradas":3,"gastos":90,"pos":8},{"nome":"Ricardo","entradas":2,"gastos":60,"pos":9},{"nome":"Marcel","entradas":1,"gastos":30,"pos":10}],"total":1230,"ranking":123,"liquido":1107,"colocacoes":{"1":"Kiik","2":"Wendel","3":"Fujita"},"timestamp":1781062023385},{"data":"2026-06-02","buyin":30,"pix_nome":"Kiik","pix_num":"11-985846189","jogadores":[{"nome":"CD","entradas":2,"gastos":60,"pos":1},{"nome":"JP","entradas":5,"gastos":150,"pos":2},{"nome":"Ricardo","entradas":4,"gastos":120,"pos":3},{"nome":"Kiik","entradas":7,"gastos":210,"pos":4},{"nome":"Danilo","entradas":6,"gastos":180,"pos":5},{"nome":"Basoli","entradas":5,"gastos":150,"pos":6},{"nome":"Marcos","entradas":4,"gastos":120,"pos":7},{"nome":"Diogo","entradas":3,"gastos":90,"pos":8},{"nome":"Jesus","entradas":2,"gastos":60,"pos":9},{"nome":"Wendel","entradas":2,"gastos":60,"pos":10}],"total":1200,"ranking":120,"liquido":1080,"colocacoes":{"1":"CD","2":"JP","3":"Ricardo"},"timestamp":1780454421093},{"data":"2026-05-26","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Kiik","entradas":5,"gastos":150},{"nome":"Caio","entradas":4,"gastos":120},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"CA","entradas":3,"gastos":90}],"total":870,"ranking":87,"liquido":783,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Genival"}},{"data":"2026-05-19","buyin":30,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":120},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"CD","entradas":4,"gastos":120},{"nome":"Danilo","entradas":3,"gastos":90},{"nome":"Genival","entradas":2,"gastos":60},{"nome":"Richard","entradas":1,"gastos":30},{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Jesus","entradas":4,"gastos":120}],"total":990,"ranking":99,"liquido":891,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"Kiik","3":"JP"}},{"data":"2026-05-13","buyin":30,"jogadores":[{"nome":"Genival","entradas":3,"gastos":90},{"nome":"Jesus","entradas":5,"gastos":150},{"nome":"Wendel","entradas":5,"gastos":150},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"Marcos","entradas":6,"gastos":180},{"nome":"CD","entradas":2,"gastos":60}],"total":900,"ranking":90,"liquido":810,"timestamp":0,"importado":true,"colocacoes":{"1":"Genival","2":"Jesus","3":"Wendel"}},{"data":"2026-05-05","buyin":30,"jogadores":[{"nome":"Ricardo","entradas":2,"gastos":60},{"nome":"Wendel","entradas":3,"gastos":90},{"nome":"Jesus","entradas":2,"gastos":60},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"CD","entradas":4,"gastos":120},{"nome":"JP","entradas":8,"gastos":240},{"nome":"Marcos","entradas":9,"gastos":270},{"nome":"Danilo","entradas":2,"gastos":60}],"total":960,"ranking":96,"liquido":864,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"Wendel","3":"Jesus"}},{"data":"2026-04-28","buyin":30,"jogadores":[{"nome":"Jesus","entradas":1,"gastos":30},{"nome":"Basoli","entradas":2,"gastos":60},{"nome":"Wendel","entradas":6,"gastos":180},{"nome":"Ricardo","entradas":4,"gastos":120},{"nome":"CD","entradas":6,"gastos":180},{"nome":"Danilo","entradas":6,"gastos":180},{"nome":"Kiik","entradas":7,"gastos":210},{"nome":"Caio","entradas":2,"gastos":60},{"nome":"Richard","entradas":2,"gastos":60},{"nome":"Favero","entradas":4,"gastos":120},{"nome":"Genival","entradas":4,"gastos":120},{"nome":"JP","entradas":3,"gastos":90},{"nome":"Marcos","entradas":2,"gastos":60}],"total":1470,"ranking":147,"liquido":1323,"timestamp":0,"importado":true,"colocacoes":{"1":"Jesus","2":"Basoli","3":"Wendel"}},{"data":"2026-04-22","buyin":30,"jogadores":[{"nome":"CD","entradas":2,"gastos":60},{"nome":"Ricardo","entradas":3,"gastos":90},{"nome":"Richard","entradas":5,"gastos":150},{"nome":"Basoli","entradas":5,"gastos":150},{"nome":"Kiik","entradas":4,"gastos":120},{"nome":"Marcos","entradas":2,"gastos":60},{"nome":"Danilo","entradas":5,"gastos":150}],"total":780,"ranking":78,"liquido":702,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Ricardo","3":"Richard"}},{"data":"2026-04-14","buyin":30,"jogadores":[{"nome":"CD","entradas":3,"gastos":90},{"nome":"Marcos","entradas":8,"gastos":240},{"nome":"Diogo","entradas":3,"gastos":90},{"nome":"Kiik","entradas":2,"gastos":60},{"nome":"Richard","entradas":3,"gastos":90},{"nome":"Ricardo","entradas":6,"gastos":180},{"nome":"Danilo","entradas":2,"gastos":60},{"nome":"JP","entradas":1,"gastos":30}],"total":840,"ranking":84,"liquido":756,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Marcos","3":"Diogo"}},{"data":"2026-04-08","buyin":20,"jogadores":[{"nome":"Marcos","entradas":6,"gastos":120},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Basoli","entradas":6,"gastos":120},{"nome":"Alex","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40}],"total":540,"ranking":54,"liquido":486,"timestamp":0,"importado":true,"colocacoes":{"1":"Marcos","2":"Richard","3":"Wilcker"}},{"data":"2026-03-31","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Marcos","entradas":3,"gastos":60},{"nome":"CA","entradas":2,"gastos":40},{"nome":"Richard","entradas":4,"gastos":80},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":6,"gastos":120}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Marcos","3":"CA"}},{"data":"2026-03-24","buyin":20,"jogadores":[{"nome":"Kimura","entradas":5,"gastos":100},{"nome":"Wilcker","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":3,"gastos":60},{"nome":"Kiik","entradas":6,"gastos":120},{"nome":"Favero","entradas":2,"gastos":40},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Diogo","entradas":6,"gastos":120},{"nome":"Marcos","entradas":5,"gastos":100}],"total":820,"ranking":82,"liquido":738,"timestamp":0,"importado":true,"colocacoes":{"1":"Kimura","2":"Wilcker","3":"CD"}},{"data":"2026-03-18","buyin":20,"jogadores":[{"nome":"Ricardo","entradas":5,"gastos":100},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Danilo","entradas":5,"gastos":100},{"nome":"Wendel","entradas":6,"gastos":120},{"nome":"Kiik","entradas":3,"gastos":60},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Diogo","entradas":3,"gastos":60}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Ricardo","2":"CD","3":"Danilo"}},{"data":"2026-03-10","buyin":20,"jogadores":[{"nome":"CD","entradas":4,"gastos":80},{"nome":"Danilo","entradas":2,"gastos":40},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":5,"gastos":100},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Kiik","entradas":5,"gastos":100},{"nome":"Caio","entradas":4,"gastos":80}],"total":520,"ranking":52,"liquido":468,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Danilo","3":"Ricardo"}},{"data":"2026-03-04","buyin":20,"jogadores":[{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Wilcker","entradas":3,"gastos":60},{"nome":"Ricardo","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Wendel","entradas":7,"gastos":140}],"total":400,"ranking":40,"liquido":360,"timestamp":0,"importado":true,"colocacoes":{"1":"Kiik","2":"Danilo","3":"Wilcker"}},{"data":"2026-02-25","buyin":20,"jogadores":[{"nome":"CD","entradas":3,"gastos":60},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Danilo","entradas":4,"gastos":80},{"nome":"Basoli","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Wendel","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40}],"total":380,"ranking":38,"liquido":342,"timestamp":0,"importado":true,"colocacoes":{"1":"CD","2":"Richard","3":"Danilo"}},{"data":"2026-02-12","buyin":20,"jogadores":[{"nome":"Wendel","entradas":4,"gastos":80},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Wilcker","entradas":2,"gastos":40},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"Kimura","entradas":4,"gastos":80},{"nome":"Caio","entradas":3,"gastos":60},{"nome":"Kiik","entradas":4,"gastos":80},{"nome":"Favero","entradas":2,"gastos":40}],"total":600,"ranking":60,"liquido":540,"timestamp":0,"importado":true,"colocacoes":{"1":"Wendel","2":"CD","3":"Wilcker"}},{"data":"2026-01-29","buyin":20,"jogadores":[{"nome":"Caio","entradas":2,"gastos":40},{"nome":"Richard","entradas":2,"gastos":40},{"nome":"Evandro","entradas":1,"gastos":20},{"nome":"Genival","entradas":3,"gastos":60},{"nome":"Danilo","entradas":6,"gastos":120},{"nome":"CD","entradas":3,"gastos":60},{"nome":"Diogo","entradas":2,"gastos":40},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"Basoli","entradas":3,"gastos":60},{"nome":"Wendel","entradas":4,"gastos":80}],"total":560,"ranking":56,"liquido":504,"timestamp":0,"importado":true,"colocacoes":{"1":"Caio","2":"Evandro","3":"Richard"}},{"data":"2026-01-14","buyin":20,"jogadores":[{"nome":"Richard","entradas":3,"gastos":60},{"nome":"Kiik","entradas":2,"gastos":40},{"nome":"CD","entradas":2,"gastos":40},{"nome":"Genival","entradas":4,"gastos":80},{"nome":"Danilo","entradas":3,"gastos":60},{"nome":"CA","entradas":5,"gastos":100},{"nome":"Marcos","entradas":4,"gastos":80}],"total":460,"ranking":46,"liquido":414,"timestamp":0,"importado":true,"colocacoes":{"1":"Richard","2":"Kiik","3":"CD"}}];
 
 // Inicializar histórico
-// Se a versão salva é mais antiga que o seed (dados de teste), limpar e usar seed
-const _APP_VERSION = '2026-v2';
+const _APP_VERSION = '2026-v3';
 // Chave mestra de recuperação — funciona sempre, mesmo se a senha do responsável for esquecida.
 const _MASTER_KEY = 'Poker#Mestre2026';
 const _savedVersion = localStorage.getItem('poker_version');
-if (_savedVersion !== _APP_VERSION) {
-  // Primeira vez com esta versão — limpar tudo e carregar seed limpo
-  localStorage.clear();
-  sessionStorage.clear();
-  localStorage.setItem('poker_version', _APP_VERSION);
-  localStorage.setItem('poker_historico', JSON.stringify(_seed));
+
+// ── Bootstrap NÃO-DESTRUTIVO (R-4) ──────────────────────────────
+// Nunca mais apagamos o localStorage ao trocar de versão. Dados são preservados;
+// migrações, quando necessárias, são incrementais e idempotentes.
+(function migrarNaoDestrutivo() {
+  const temHistorico = localStorage.getItem('poker_historico') !== null;
+  // Primeira execução ABSOLUTA (nunca teve dados neste navegador): carrega o seed.
+  if (!temHistorico) {
+    localStorage.setItem('poker_historico', JSON.stringify(_seed));
+    localStorage.setItem('poker_version', _APP_VERSION);
+    return;
+  }
+  // Já existem dados: se a versão mudou, apenas migra — SEM apagar.
+  if (_savedVersion !== _APP_VERSION) {
+    // Snapshot de segurança automático ANTES de qualquer migração (rede de proteção).
+    try {
+      localStorage.setItem('poker_backup_auto', JSON.stringify({
+        versaoAnterior: _savedVersion || null,
+        migradoEm: new Date().toISOString(),
+        historico: JSON.parse(localStorage.getItem('poker_historico') || '[]'),
+        senha: localStorage.getItem('poker_senha') || null
+      }));
+    } catch (e) { /* snapshot é best-effort; nunca bloqueia o boot */ }
+    // (Ganchos de migração específicos por versão entrariam aqui, preservando os dados.)
+    localStorage.setItem('poker_version', _APP_VERSION);
+  }
+})();
+// Normalização defensiva (R-2): garante campos esperados em torneios de qualquer origem
+function normalizarTorneio(t) {
+  if (!t || typeof t !== 'object') return t;
+  if (!Array.isArray(t.custosExtras)) t.custosExtras = [];
+  if (!t.colocacoes) t.colocacoes = {};
+  if (!Array.isArray(t.jogadores)) t.jogadores = [];
+  return t;
 }
 let historico = (() => {
+  const seedOff = localStorage.getItem('poker_seed_off') === '1';  // app "zerado" p/ novo grupo
   const saved = localStorage.getItem('poker_historico');
+  let arr;
   if (saved) {
-    const arr = JSON.parse(saved);
-    // Adicionar torneios do seed que ainda não estejam salvos
-    const savedDates = new Set(arr.map(t => t.data));
-    const extra = _seed.filter(t => !savedDates.has(t.data));
-    if (extra.length) {
-      const merged = [...arr, ...extra].sort((a,b) => b.data.localeCompare(a.data));
-      localStorage.setItem('poker_historico', JSON.stringify(merged));
-      return merged;
+    arr = JSON.parse(saved);
+    if (!seedOff) {
+      // Adicionar torneios do seed que ainda não estejam salvos
+      const savedDates = new Set(arr.map(t => t.data));
+      const extra = _seed.filter(t => !savedDates.has(t.data));
+      if (extra.length) {
+        arr = [...arr, ...extra].sort((a,b) => b.data.localeCompare(a.data));
+        localStorage.setItem('poker_historico', JSON.stringify(arr));
+      }
     }
-    return arr;
+  } else {
+    arr = seedOff ? [] : _seed.slice();
   }
-  return _seed.slice();
+  return arr.map(normalizarTorneio);
 })();
 
 // ── Init
@@ -523,6 +576,7 @@ window.onload = () => {
   // If pending torneio exists in session storage, restore pre-resultado view
   const savedPending = sessionStorage.getItem('poker_pending');
   if (savedPending) { pendingTorneio = JSON.parse(savedPending); renderPreResultado(true); showTab('resultado'); }
+  renderBackupStatus();
   ajustarTopbar();
 };
 window.addEventListener('resize', ajustarTopbar);
@@ -566,16 +620,30 @@ function showTab(tab) {
 // ── Setup
 function renderChipsFixos() {
   const c = document.getElementById('chips-fixos');
-  c.innerHTML = '<div class="section-divider">Jogadores</div>';
-  JOGADORES_FIXOS.forEach(nome => {
+  const total = JOGADORES_FIXOS.length;
+  const nSel = state.jogadoresTemp.length;
+  const ordenados = [...JOGADORES_FIXOS].sort((a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' }));
+
+  const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--gray-500);">${nSel} de ${total} selecionados</span>
+      ${nSel ? `<span onclick="limparSelecaoJogadores()" style="font-size:12px;font-weight:600;color:var(--red);cursor:pointer;">limpar</span>` : ''}
+    </div>`;
+
+  const cells = ordenados.map(nome => {
     const sel = state.jogadoresTemp.includes(nome);
-    const chip = document.createElement('span');
-    chip.className = 'player-chip';
-    chip.style.background = sel ? '#dcfce7' : '';
-    chip.style.color = sel ? '#16a34a' : '';
-    chip.innerHTML = `<span style="cursor:pointer;" onclick="toggleJogadorFixo('${nome}')">${nome}</span><button class="remove" onclick="event.stopPropagation();removerJogadorFixo('${nome}')" title="Remover ${nome}">✕</button>`;
-    c.appendChild(chip);
-  });
+    const safe = nome.replace(/'/g, "\\'");
+    return `<div onclick="toggleJogadorFixo('${safe}')" style="display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:10px;border:1.5px solid ${sel ? '#16a34a' : 'var(--gray-200)'};background:${sel ? '#dcfce7' : '#fff'};cursor:pointer;min-width:0;">
+        <span style="width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid ${sel ? '#16a34a' : 'var(--gray-300)'};background:${sel ? '#16a34a' : '#fff'};color:#fff;">${sel ? '✓' : ''}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:${sel ? '#166534' : 'var(--gray-800)'};">${nome}</span>
+        <button onclick="event.stopPropagation();removerJogadorFixo('${safe}')" title="Remover ${nome}" style="flex-shrink:0;width:20px;height:20px;border:none;background:transparent;color:var(--gray-300);font-size:13px;line-height:1;cursor:pointer;">✕</button>
+      </div>`;
+  }).join('');
+
+  c.innerHTML = header + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${cells}</div>`;
+}
+function limparSelecaoJogadores() {
+  state.jogadoresTemp = [];
+  renderChipsFixos();
 }
 function toggleJogadorFixo(nome) {
   const i = state.jogadoresTemp.indexOf(nome);
@@ -607,7 +675,7 @@ function iniciarTorneio() {
   if (state.jogadoresTemp.length === 0) { showToast('Adicione pelo menos 1 jogador'); return; }
   state.data = dataVal; state.buyin = buyinVal;
   state.jogadores = state.jogadoresTemp.map(nome => ({ nome, entradas: [{tipo:'buyin'}] }));
-  state.ativo = true; state.jogadoresTemp = [];
+  state.ativo = true; state.jogadoresTemp = []; state.custosExtras = [];
   salvarEstado(); atualizarHeader(); renderPlayersList(); atualizarSummary();
   showTab('torneio'); showToast('Torneio iniciado!');
 }
@@ -741,7 +809,209 @@ function irParaColocacoes() {
     const placeholder = [`— 1º Lugar (35 pts) —`,`— 2º Lugar (25 pts) —`,`— 3º Lugar (15 pts) —`][n-1];
     sel.innerHTML = `<option value="">${placeholder}</option>${opts}`;
   });
+  renderCustosExtras();
   showTab('colocacoes');
+}
+
+// ══════════════ CUSTOS EXTRAS / RATEIO DE DEALERS ══════════════
+function getJogadoresComEntradas() {
+  return state.jogadores.filter(j => j.entradas.length > 0).map(j => j.nome);
+}
+
+// Núcleo do rateio. custosExtras: [{descricao, valor, dealerJogador, credor}]
+function calcularRateio(custosExtras, jogadoresNomes) {
+  const r2 = v => Math.round((v || 0) * 100) / 100;
+  const custos = (custosExtras || []).filter(c => (parseFloat(c.valor) || 0) > 0);
+  const valorTotal = r2(custos.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0));
+  const excluidos = new Set(custos.map(c => c.dealerJogador).filter(Boolean));
+  const rateados = (jogadoresNomes || []).filter(n => !excluidos.has(n));
+  const rateioMap = {}, recebeServico = {}, reembolso = {};
+  custos.forEach(c => {
+    const v = r2(parseFloat(c.valor) || 0);
+    if (c.dealerJogador) recebeServico[c.dealerJogador] = r2((recebeServico[c.dealerJogador] || 0) + v);
+    if (c.credor)        reembolso[c.credor]           = r2((reembolso[c.credor] || 0) + v);
+  });
+  const n = rateados.length;
+  if (n > 0 && valorTotal > 0) {
+    const base = r2(valorTotal / n);
+    rateados.forEach((nome, i) => { rateioMap[nome] = (i < n - 1) ? base : r2(valorTotal - base * (n - 1)); });
+  }
+  return { custos, valorTotal, excluidos, rateados, rateioMap, recebeServico, reembolso, n, base: n > 0 ? r2(valorTotal / n) : 0 };
+}
+
+// Consolidado por jogador (saldo via caixa/PIX)
+function calcularConsolidado(torneio) {
+  const r2 = v => Math.round((v || 0) * 100) / 100;
+  const jogadores = torneio.jogadores || [];
+  const nomes = jogadores.map(j => j.nome);
+  const R = calcularRateio(torneio.custosExtras, nomes);
+  const cols = torneio.colocacoes || {};
+  const pctMap = {}; if (cols['1']) pctMap[cols['1']] = .5; if (cols['2']) pctMap[cols['2']] = .3; if (cols['3']) pctMap[cols['3']] = .2;
+  const linhas = jogadores.map(j => {
+    const premio = pctMap[j.nome] ? r2(torneio.liquido * pctMap[j.nome]) : 0;
+    const rat = R.rateioMap[j.nome] || 0;
+    const serv = R.recebeServico[j.nome] || 0;
+    const reemb = R.reembolso[j.nome] || 0;
+    const saldo = r2(premio - j.gastos - rat + serv + reemb);
+    return { nome: j.nome, gasto: j.gastos, premio, rateio: rat, servico: serv, reembolso: reemb, saldo };
+  });
+  return { R, linhas };
+}
+
+// ── Cobrança PIX (grupo + individual) ──────────────────────────
+let _ultimoConsolidado = null;
+function _copiarTexto(txt) {
+  try { navigator.clipboard.writeText(txt).then(() => showToast('📋 Cobrança copiada!')); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = txt;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta); showToast('📋 Cobrança copiada!');
+  }
+}
+function _fmtDataBR(d) { try { return new Date(d + 'T12:00:00').toLocaleDateString('pt-BR'); } catch (e) { return d || ''; } }
+function copiarCobrancaGrupo() {
+  const c = _ultimoConsolidado; if (!c) return;
+  const pagam = c.linhas.filter(l => l.saldo < 0).sort((a, b) => a.saldo - b.saldo);
+  if (!pagam.length) { showToast('Ninguém tem valor a pagar'); return; }
+  const linhas = pagam.map(l => `• ${l.nome}: R$ ${Math.abs(l.saldo).toFixed(2).replace('.', ',')}`).join('\n');
+  const txt = `🃏 Acerto do torneio ${_fmtDataBR(c.data)}\nPIX ${c.pix_nome} — ${c.pix_num}\n\n💸 Quem paga:\n${linhas}\n\nMandem o comprovante quando fizerem o PIX. Valeu!`;
+  _copiarTexto(txt);
+}
+function copiarCobrancaJogador(nome) {
+  const c = _ultimoConsolidado; if (!c) return;
+  const l = c.linhas.find(x => x.nome === nome); if (!l) return;
+  const v = l.saldo;
+  let txt;
+  if (v < 0) txt = `🃏 ${nome}, o seu acerto do torneio ${_fmtDataBR(c.data)} ficou em R$ ${Math.abs(v).toFixed(2).replace('.', ',')}.\nPIX ${c.pix_nome}: ${c.pix_num}\nManda o comprovante quando puder, valeu!`;
+  else if (v > 0) txt = `🃏 ${nome}, você tem R$ ${v.toFixed(2).replace('.', ',')} a RECEBER do acerto do torneio ${_fmtDataBR(c.data)} (via ${c.pix_nome}).`;
+  else txt = `🃏 ${nome}, o seu acerto do torneio ${_fmtDataBR(c.data)} ficou zerado. 👍`;
+  _copiarTexto(txt);
+}
+
+// HTML dos cards de rateio + consolidado (usado no pré-resultado e no resultado final)
+function buildRateioHtml(torneio) {
+  const custos = (torneio.custosExtras || []).filter(c => (parseFloat(c.valor) || 0) > 0);
+  if (!custos.length) return '';
+  const { R, linhas } = calcularConsolidado(torneio);
+  const money = v => `R$ ${Number(v).toFixed(2)}`;
+  _ultimoConsolidado = { data: torneio.data, pix_nome: torneio.pix_nome || 'Kiik', pix_num: torneio.pix_num || '11-985846189', linhas };
+
+  // Card 1 — Custos & rateio
+  let html = `<div class="card"><div class="card-title">🎲 CUSTOS EXTRAS & RATEIO</div>`;
+  custos.forEach(c => {
+    const v = Math.round((parseFloat(c.valor) || 0) * 100) / 100;
+    let dest = [];
+    if (c.dealerJogador) dest.push(`recebe: <strong>${c.dealerJogador}</strong> (fora do rateio)`);
+    if (c.credor) dest.push(`reembolsa: <strong>${c.credor}</strong>`);
+    if (!dest.length) dest.push('pago pelo caixa');
+    html += `<div class="breakdown-row"><span>${c.descricao || 'Custo'} <span style="font-size:11px;color:var(--gray-400);">— ${dest.join(' • ')}</span></span><span style="font-weight:600">${money(v)}</span></div>`;
+  });
+  html += `<div class="breakdown-row total"><span>Total a ratear</span><span style="color:var(--amber)">${money(R.valorTotal)}</span></div>`;
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+      <div style="background:var(--gray-50);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--gray-400);text-transform:uppercase;">Rateado entre</div><div style="font-weight:800;">${R.n} jogadores</div></div>
+      <div style="background:var(--gray-50);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--gray-400);text-transform:uppercase;">Cada um paga</div><div style="font-weight:800;">${money(R.base)}</div></div>
+    </div>`;
+  if (R.excluidos.size) html += `<div style="font-size:11px;color:var(--gray-500);margin-top:8px;">Fora do rateio (atuou como dealer): <strong>${[...R.excluidos].join(', ')}</strong></div>`;
+  html += `</div>`;
+
+  // Card 2 — Consolidado quem paga / recebe
+  const recebe = linhas.filter(l => l.saldo > 0).sort((a, b) => b.saldo - a.saldo);
+  const paga = linhas.filter(l => l.saldo < 0).sort((a, b) => a.saldo - b.saldo);
+  const zero = linhas.filter(l => l.saldo === 0);
+  html += `<div class="card"><div class="card-title">💸 QUEM PAGA / QUEM RECEBE <span style="font-weight:400;font-size:11px;color:var(--gray-400);">(via PIX ${torneio.pix_nome || 'Kiik'})</span></div>`;
+  html += `<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin:2px 0 4px;">🟢 Recebe do caixa</div>`;
+  recebe.forEach(l => { html += `<div class="breakdown-row"><span>${l.nome}</span><span style="font-weight:700;color:var(--green)">+${money(l.saldo)}</span></div>`; });
+  if (!recebe.length) html += `<div style="font-size:12px;color:var(--gray-400);">—</div>`;
+  html += `<div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;margin:10px 0 4px;">🔴 Paga ao caixa</div>`;
+  paga.forEach(l => { const s = l.nome.replace(/'/g, "\\'"); html += `<div class="breakdown-row"><span>${l.nome} <button onclick="copiarCobrancaJogador('${s}')" title="Copiar cobrança de ${l.nome}" style="border:none;background:transparent;cursor:pointer;font-size:12px;padding:0 2px;">📋</button></span><span style="font-weight:700;color:var(--red)">${money(l.saldo)}</span></div>`; });
+  zero.forEach(l => { html += `<div class="breakdown-row"><span>${l.nome} <span style="font-size:11px;color:var(--gray-400)">(zerado)</span></span><span style="font-weight:600;color:var(--gray-500)">R$ 0,00</span></div>`; });
+  html += `<div class="breakdown-row total"><span>Caixa retém (fundo ranking)</span><span style="color:var(--amber)">${money(torneio.ranking)}</span></div>`;
+  if (paga.length) html += `<button class="btn-secondary" onclick="copiarCobrancaGrupo()" style="margin-top:10px;border-color:var(--gray-900);color:var(--gray-900);">📋 Copiar cobrança do grupo (PIX)</button>`;
+  html += `</div>`;
+  return html;
+}
+
+function addCustoExtra() {
+  if (!state.custosExtras) state.custosExtras = [];
+  state.custosExtras.push({ descricao: 'Dealer', valor: '', dealerJogador: '', credor: '' });
+  salvarEstado(); renderCustosExtras();
+}
+function removerCustoExtra(i) {
+  state.custosExtras.splice(i, 1); salvarEstado(); renderCustosExtras();
+}
+function atualizarCustoExtra(i, campo, valor) {
+  state.custosExtras[i][campo] = valor; salvarEstado();
+  // dealerJogador muda quem é excluído do rateio → re-render preview (e realça exclusão)
+  renderRateioPreview();
+}
+
+// Tipos de custo comuns (atalhos que preenchem a descrição)
+const _TIPOS_CUSTO = ['Dealer', 'Churrasco', 'Bebidas', 'Baralho', 'Aluguel de mesa', 'Ficha'];
+function setCustoTipo(i, tipo) {
+  if (!state.custosExtras || !state.custosExtras[i]) return;
+  state.custosExtras[i].descricao = tipo;
+  salvarEstado(); renderCustosExtras();
+}
+
+function renderCustosExtras() {
+  const lista = document.getElementById('custos-lista');
+  if (!lista) return;
+  if (!state.custosExtras) state.custosExtras = [];
+  const nomes = getJogadoresComEntradas();
+  const custos = state.custosExtras;
+  const optDealer = sel => ['<option value="">— nenhum (dealer externo) —</option>']
+    .concat(nomes.map(n => `<option value="${n}" ${sel === n ? 'selected' : ''}>${n}</option>`)).join('');
+  const optCredor = sel => ['<option value="">Caixa (ninguém adiantou)</option>']
+    .concat(nomes.map(n => `<option value="${n}" ${sel === n ? 'selected' : ''}>${n}</option>`)).join('');
+  if (!custos.length) {
+    lista.innerHTML = `<div style="font-size:12px;color:var(--gray-400);padding:6px 0;">Nenhum custo extra adicionado.</div>`;
+  } else {
+    lista.innerHTML = custos.map((c, i) => {
+      const chips = _TIPOS_CUSTO.map(t => {
+        const on = (c.descricao || '').trim().toLowerCase() === t.toLowerCase();
+        return `<span onclick="setCustoTipo(${i},'${t}')" style="cursor:pointer;font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;border:1px solid ${on ? 'var(--gray-900)' : 'var(--gray-200)'};background:${on ? 'var(--gray-900)' : '#fff'};color:${on ? '#fff' : 'var(--gray-600)'};">${t}</span>`;
+      }).join('');
+      return `
+      <div style="border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;background:var(--gray-50);">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">${chips}</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input type="text" value="${(c.descricao||'').replace(/"/g,'&quot;')}" placeholder="Descrição (ou toque num atalho)" oninput="atualizarCustoExtra(${i},'descricao',this.value)"
+            style="flex:1;padding:8px;border-radius:6px;border:1.5px solid var(--gray-200);font-family:inherit;font-size:13px;">
+          <input type="number" inputmode="decimal" value="${c.valor}" placeholder="Valor R$" oninput="atualizarCustoExtra(${i},'valor',this.value)"
+            style="width:90px;padding:8px;border-radius:6px;border:1.5px solid var(--gray-200);font-family:inherit;font-size:13px;text-align:right;">
+          <button onclick="removerCustoExtra(${i})" title="Remover" style="border:1.5px solid var(--red);color:var(--red);background:var(--red-light);border-radius:6px;width:34px;flex-shrink:0;cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <label style="flex:1;min-width:140px;font-size:11px;color:var(--gray-600);">Dealer que jogou (recebe e sai do rateio)
+            <select onchange="atualizarCustoExtra(${i},'dealerJogador',this.value)" style="width:100%;padding:7px;border-radius:6px;border:1.5px solid var(--gray-200);font-family:inherit;font-size:13px;margin-top:2px;">${optDealer(c.dealerJogador)}</select>
+          </label>
+          <label style="flex:1;min-width:140px;font-size:11px;color:var(--gray-600);">Adiantado por (reembolsado)
+            <select onchange="atualizarCustoExtra(${i},'credor',this.value)" style="width:100%;padding:7px;border-radius:6px;border:1.5px solid var(--gray-200);font-family:inherit;font-size:13px;margin-top:2px;">${optCredor(c.credor)}</select>
+          </label>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  renderRateioPreview();
+}
+
+function renderRateioPreview() {
+  const el = document.getElementById('custos-rateio-preview');
+  if (!el) return;
+  const nomes = getJogadoresComEntradas();
+  const R = calcularRateio(state.custosExtras, nomes);
+  if (!R.custos.length) { el.innerHTML = ''; return; }
+  const exclArr = [...R.excluidos];
+  el.innerHTML = `
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--radius-sm);padding:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+        <div><div style="font-size:9px;color:#92400e;text-transform:uppercase;">Total custos</div><div style="font-weight:800;color:#92400e;">R$ ${R.valorTotal.toFixed(2)}</div></div>
+        <div><div style="font-size:9px;color:#92400e;text-transform:uppercase;">Rateado entre</div><div style="font-weight:800;color:#92400e;">${R.n} jog.</div></div>
+        <div><div style="font-size:9px;color:#92400e;text-transform:uppercase;">Cada um paga</div><div style="font-weight:800;color:#92400e;">R$ ${R.n ? R.base.toFixed(2) : '0,00'}</div></div>
+      </div>
+      ${exclArr.length ? `<div style="font-size:11px;color:#92400e;margin-top:8px;">Fora do rateio (dealer): <strong>${exclArr.join(', ')}</strong></div>` : ''}
+    </div>`;
 }
 
 // ── Finalizar
@@ -848,7 +1118,13 @@ function finalizarTorneio() {
   // Montar torneio pendente (ainda não salvo)
   // Ordenar por gastos desc e atribuir posição com base nas colocações
   const _jogs = state.jogadores
-    .map(j=>({nome:j.nome,entradas:j.entradas.length,gastos:j.entradas.length*state.buyin}))
+    .map(j=>({
+      nome:j.nome, entradas:j.entradas.length, gastos:j.entradas.length*state.buyin,
+      // detalhe Buy-in / Rebuy / Add-on (passa a ser salvo a partir da v3.1)
+      bra:{ b:j.entradas.filter(e=>e.tipo==='buyin').length,
+            r:j.entradas.filter(e=>e.tipo==='rebuy').length,
+            a:j.entradas.filter(e=>e.tipo==='addon').length }
+    }))
     .filter(j=>j.entradas>0)
     .sort((a,b)=>b.gastos-a.gastos);
   // atribuir pos: 1º,2º,3º dos selects, resto por ordem de gastos
@@ -864,6 +1140,7 @@ function finalizarTorneio() {
     data: state.data, buyin: state.buyin,
     pix_nome: 'Kiik', pix_num: '11-985846189',
     jogadores: _jogs,
+    custosExtras: JSON.parse(JSON.stringify(state.custosExtras || [])),
     total, ranking, liquido, colocacoes, timestamp: Date.now()
   };
 
@@ -896,7 +1173,7 @@ function abrirModalValidacao() {
 }
 
 function fecharModal() {
-  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro','modal-desempenho-jogador'].forEach(id => {
+  ['modal-validacao','modal-config-senha','modal-renomear','modal-excluir-torneio','modal-resumo-financeiro','modal-desempenho-jogador','modal-zerar'].forEach(id => {
     const m = document.getElementById(id);
     if (m) m.remove();
   });
@@ -928,6 +1205,10 @@ function confirmarValidacao() {
   showToast('✅ Resultado validado e salvo!');
   pendingTorneio = null;
   sessionStorage.removeItem('poker_pending');
+
+  // Backup automático de segurança (R-1): a cada torneio oficializado, gera uma
+  // cópia durável fora do navegador. Cadência semanal = no momento exato em que há dado novo.
+  try { exportarBackupJSON(true); } catch (e) { /* nunca bloqueia a validação */ }
 }
 
 // ── Configurar senha (primeira vez ou troca)
@@ -1104,8 +1385,51 @@ function copiarResumoFinanceiro() {
   }
 }
 
+// ── Zerar tudo (preparar app limpo para um novo grupo) — protegido por senha
+function abrirZerarTudo() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-zerar';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">🧹 Zerar tudo</div>
+      <div class="modal-sub">Apaga <strong>todo o histórico</strong>, jogadores e senha deste dispositivo, deixando o app pronto para um novo grupo começar do zero. <strong>Não dá para desfazer.</strong> Faça um backup antes, se quiser guardar.</div>
+      <input class="modal-input" type="password" id="zerar-senha" placeholder="Senha do responsável" maxlength="20" style="letter-spacing:4px;"
+        onkeydown="if(event.key==='Enter')confirmarZerarTudo()">
+      <div class="modal-error" id="zerar-erro"></div>
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="fecharModal()" style="width:auto;padding:12px 16px;">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarZerarTudo()" style="background:var(--red);box-shadow:none;">Zerar tudo</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('zerar-senha').focus(), 100);
+}
+function confirmarZerarTudo() {
+  const senha = document.getElementById('zerar-senha').value;
+  const salva = localStorage.getItem('poker_senha') || 'poker2026';
+  if (senha !== salva && senha !== _MASTER_KEY) {
+    document.getElementById('zerar-erro').textContent = 'Senha incorreta.';
+    return;
+  }
+  fecharModal();
+  zerarTudo();
+}
+function zerarTudo() {
+  historico = [];
+  localStorage.setItem('poker_historico', '[]');
+  localStorage.setItem('poker_seed_off', '1');       // não reinjeta o seed no reload
+  JOGADORES_FIXOS = []; salvarJogadoresFixos();
+  state = { data:'', buyin:30, jogadores:[], ativo:false, jogadoresTemp:[], custosExtras:[] };
+  salvarEstado();
+  sessionStorage.removeItem('poker_pending');
+  ['poker_last_backup','poker_backup_auto','poker_senha'].forEach(k => localStorage.removeItem(k));
+  showToast('🧹 Tudo zerado — pronto para um novo grupo!');
+  setTimeout(() => location.reload(), 900);
+}
+
 // ── Backup completo (JSON) — exporta todo o histórico salvo neste dispositivo/navegador
-function exportarBackupJSON() {
+function exportarBackupJSON(auto) {
   const backup = {
     versao: _APP_VERSION,
     exportadoEm: new Date().toISOString(),
@@ -1117,13 +1441,37 @@ function exportarBackupJSON() {
   const a = document.createElement('a');
   const pad = n => String(n).padStart(2,'0');
   const hoje = new Date();
+  const sufixo = auto ? '_auto' : '';
   a.href = url;
-  a.download = `poker_backup_${hoje.getFullYear()}${pad(hoje.getMonth()+1)}${pad(hoje.getDate())}.json`;
+  a.download = `poker_backup_${hoje.getFullYear()}${pad(hoje.getMonth()+1)}${pad(hoje.getDate())}${sufixo}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('💾 Backup exportado! Envie o arquivo para seu e-mail ou WhatsApp.');
+  // Registra o último backup (R-1) e atualiza o indicador
+  localStorage.setItem('poker_last_backup', new Date().toISOString());
+  renderBackupStatus();
+  if (auto) {
+    showToast('💾 Backup automático gerado — guarde o arquivo em local seguro.');
+  } else {
+    showToast('💾 Backup exportado! Envie o arquivo para seu e-mail ou WhatsApp.');
+  }
+}
+
+// Indicador "último backup há X dias" (R-1) — alerta quando está velho
+function renderBackupStatus() {
+  const el = document.getElementById('backup-status');
+  if (!el) return;
+  const iso = localStorage.getItem('poker_last_backup');
+  if (!iso) {
+    el.innerHTML = `<span style="color:var(--red);font-weight:600;">⚠ Nenhum backup feito ainda neste dispositivo.</span>`;
+    return;
+  }
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  const quando = dias <= 0 ? 'hoje' : (dias === 1 ? 'há 1 dia' : `há ${dias} dias`);
+  const alerta = dias >= 10;
+  el.innerHTML = `<span style="color:${alerta ? 'var(--red)' : 'var(--gray-500)'};font-weight:${alerta ? '600' : '500'};">`
+    + `${alerta ? '⚠ ' : '✓ '}Último backup: ${quando}${alerta ? ' — faça um novo backup!' : ''}</span>`;
 }
 
 // ── Importar backup (JSON) — mescla torneios do arquivo com o histórico atual (sem duplicar datas)
@@ -1313,6 +1661,10 @@ function renderPreResultado(isPending) {
         <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:#166534;">R$ ${t.liquido.toFixed(0)}</div>
       </div>
     </div>`;
+
+  // Custos extras / rateio
+  const rateioDiv = document.getElementById('pre-rateio');
+  if (rateioDiv) rateioDiv.innerHTML = buildRateioHtml(t);
 
   // Botões
   const btns = document.getElementById('pre-action-btns');
@@ -1568,6 +1920,56 @@ function calcularDesempenhoDetalhado() {
   return { lista, datas, timelineDe };
 }
 
+// Agrega, por jogador, o detalhe de entradas Buy-in / Rebuy / Add-on ao longo da temporada.
+// Torneios registrados na v3.1+ têm o detalhe exato (campo `bra`); os antigos entram como
+// 1 buy-in + o resto "sem detalhe" (rebuy/add-on não separáveis — o dado nunca foi salvo).
+function calcularEntradasBRA() {
+  const agreg = {};
+  historico.forEach(t => {
+    const buyin = t.buyin || 0;
+    (t.jogadores || []).forEach(j => {
+      if (!agreg[j.nome]) agreg[j.nome] = { nome:j.nome, torneios:0, b:0, r:0, a:0, semDetalhe:0, entradas:0, gasto:0 };
+      const x = agreg[j.nome];
+      const ent = j.entradas || 0;
+      x.torneios++; x.entradas += ent; x.gasto += (j.gastos || ent*buyin);
+      if (j.bra && (j.bra.b || j.bra.r || j.bra.a)) {
+        x.b += j.bra.b||0; x.r += j.bra.r||0; x.a += j.bra.a||0;
+      } else {
+        x.b += 1; x.semDetalhe += Math.max(0, ent - 1);
+      }
+    });
+  });
+  return Object.values(agreg).sort((p,q) => q.entradas - p.entradas);
+}
+
+function renderEntradasBRA() {
+  const el = document.getElementById('desemp-entradas');
+  if (!el) return;
+  const lista = calcularEntradasBRA();
+  if (!lista.length) { el.innerHTML = '<div style="font-size:12px;color:var(--gray-400);">Sem dados ainda.</div>'; return; }
+  const temEstimados = lista.some(x => x.semDetalhe > 0);
+  const cel = (v) => v > 0 ? String(v) : '<span style="color:var(--gray-300);">·</span>';
+  const rows = lista.map((x, i) => `
+    <tr style="background:${i % 2 ? 'var(--gray-50)' : '#fff'};">
+      <td style="text-align:left;font-weight:600;padding:8px 10px;">${x.nome}</td>
+      <td class="cen">${x.torneios}</td>
+      <td class="cen" style="color:#166534;">${cel(x.b)}</td>
+      <td class="cen" style="color:#b45309;">${cel(x.r)}</td>
+      <td class="cen" style="color:#1d4ed8;">${cel(x.a)}</td>
+      <td class="cen" style="font-weight:700;">${x.entradas}${x.semDetalhe ? '<span style="color:var(--gray-300);font-weight:400;">*</span>' : ''}</td>
+    </tr>`).join('');
+  el.innerHTML = `<div class="ct-wrap"><table class="ct" style="font-size:13px;">
+      <thead><tr>
+        <th style="padding:8px 10px;">Jogador</th>
+        <th class="cen">Torn.</th>
+        <th class="cen" style="color:#166534;">Buy-in</th>
+        <th class="cen" style="color:#b45309;">Rebuy</th>
+        <th class="cen" style="color:#1d4ed8;">Add-on</th>
+        <th class="cen">Entradas</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
+    ${temEstimados ? `<div style="font-size:10.5px;color:var(--gray-400);margin-top:8px;line-height:1.5;">Rebuy e Add-on passam a ser detalhados a partir de agora. Nos torneios antigos (marcados com <strong>*</strong>) as entradas extras entram só no total de <strong>Entradas</strong>, sem separar rebuy de add-on.</div>` : ''}`;
+}
+
 // Gera um gráfico de linha simples em SVG, sem depender de biblioteca externa
 // (mantém o app funcionando 100% offline).
 function _svgLinhaPontos(series, largura, altura) {
@@ -1629,6 +2031,8 @@ function renderDesempenho() {
     const series = top6.map((j,i) => ({ nome:j.nome, cor:_DESEMP_CORES[i], valores: timelineDe(j.nome) }));
     grafEl.innerHTML = _svgLinhaPontos(series, 320, 150);
   }
+
+  renderEntradasBRA();
 }
 
 function abrirDesempenhoJogador(nome) {
@@ -1661,6 +2065,14 @@ function abrirDesempenhoJogador(nome) {
         <div class="desemp-mini-stat"><div class="desemp-mini-val">${j.posicaoMedia ?? '—'}</div><div class="desemp-mini-lbl">Pos. média</div></div>
       </div>
       <div class="breakdown-row"><span>Saldo na temporada</span><span style="font-weight:700;color:${financeiro.saldo>=0?'var(--green)':'var(--red)'};">${sinalSaldo}R$ ${Math.abs(financeiro.saldo).toFixed(2)}</span></div>
+      <div class="card-title" style="margin-top:14px;">Entradas — Buy-in / Rebuy / Add-on</div>
+      ${(() => { const x = calcularEntradasBRA().find(e => e.nome === nome) || {b:0,r:0,a:0,semDetalhe:0,entradas:0};
+        return `<div class="breakdown-row"><span>Buy-in</span><span style="font-weight:600">${x.b}</span></div>
+        <div class="breakdown-row"><span>Rebuy</span><span style="font-weight:600">${x.r}</span></div>
+        <div class="breakdown-row"><span>Add-on</span><span style="font-weight:600">${x.a}</span></div>
+        ${x.semDetalhe ? `<div class="breakdown-row"><span>Rebuy/Add-on <span style="font-size:10px;color:var(--gray-400)">(s/ detalhe)</span></span><span style="font-weight:600;color:var(--gray-500)">${x.semDetalhe}</span></div>` : ''}
+        <div class="breakdown-row total"><span>Total de entradas</span><span style="font-weight:700">${x.entradas}</span></div>`;
+      })()}
       <div class="card-title" style="margin-top:14px;">Taxa de pódio vs média do grupo</div>
       <div class="taxa-row">
         <div class="taxa-top"><span class="taxa-nome">${j.nome}</span><span class="taxa-pct">${j.taxaPodio}%</span></div>
@@ -1827,6 +2239,55 @@ function exportarXLSX(torneio) {
   ws3['!cols'] = [{wch:14},{wch:18},{wch:9},{wch:16},{wch:16}];
   XLSX.utils.book_append_sheet(wb, ws3, `Ranking ${ds}`);
 
+  // ── ABA 4 — Custos & Rateio (só quando há custos extras)
+  const _custos = (torneio.custosExtras || []).filter(c => (parseFloat(c.valor) || 0) > 0);
+  if (_custos.length) {
+    const { R, linhas } = calcularConsolidado(torneio);
+    const ws4 = {}; const m4 = [];
+    let r = 0;
+    const put = (rr, cc, v, st) => { ws4[XLSX.utils.encode_cell({ r: rr, c: cc })] = (typeof v === 'number') ? brl(v, st) : cell(v, st); };
+    // Título
+    ws4['A1'] = cell(`Custos & Rateio ${dl}`, hdr(true, 'FF000000', 'FFFFFFFF', 'center')); m4.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+    r = 2;
+    ['Descrição', 'Valor', 'Recebe (dealer)', 'Reembolsa', 'Fora do rateio'].forEach((h, ci) => put(r, ci, h, hdr(true, 'FFFFFFFF', AZUL_H, 'center')));
+    r++;
+    _custos.forEach(c => {
+      const bg = (r % 2 === 0) ? AZUL_CL : BRANCO;
+      put(r, 0, c.descricao || 'Custo', hdr(false, 'FF000000', bg, 'left'));
+      ws4[XLSX.utils.encode_cell({ r, c: 1 })] = brl(Math.round((parseFloat(c.valor) || 0) * 100) / 100, hdr(false, 'FF000000', bg, 'right'));
+      put(r, 2, c.dealerJogador || '-', hdr(false, 'FF000000', bg, 'center'));
+      put(r, 3, c.credor || '-', hdr(false, 'FF000000', bg, 'center'));
+      put(r, 4, c.dealerJogador ? 'Sim' : '-', hdr(false, 'FF000000', bg, 'center'));
+      r++;
+    });
+    put(r, 0, 'TOTAL A RATEAR', hdr(true, 'FFFFFFFF', AZUL_ES, 'left'));
+    ws4[XLSX.utils.encode_cell({ r, c: 1 })] = brl(R.valorTotal, hdr(true, 'FFFFFFFF', AZUL_ES, 'right'));
+    put(r, 2, `${R.n} jog. × ${R.base.toFixed(2)}`, hdr(true, 'FFFFFFFF', AZUL_ES, 'center')); m4.push({ s: { r, c: 2 }, e: { r, c: 4 } });
+    r += 2;
+    // Consolidado
+    put(r, 0, 'CONSOLIDADO — QUEM PAGA / RECEBE', hdr(true, 'FF000000', 'FFFFFFFF', 'left')); m4.push({ s: { r, c: 0 }, e: { r, c: 5 } });
+    r++;
+    ['Jogador', 'Gasto', 'Prêmio Bruto', 'Rateio', 'Serviço', 'Saldo Final'].forEach((h, ci) => put(r, ci, h, hdr(true, 'FFFFFFFF', AZUL_H, 'center')));
+    r++;
+    linhas.slice().sort((a, b) => b.saldo - a.saldo).forEach(l => {
+      const bg = (r % 2 === 0) ? AZUL_CL : BRANCO;
+      put(r, 0, l.nome, hdr(false, 'FF000000', bg, 'left'));
+      ws4[XLSX.utils.encode_cell({ r, c: 1 })] = brl(l.gasto, hdr(false, 'FF000000', bg, 'right'));
+      ws4[XLSX.utils.encode_cell({ r, c: 2 })] = brl(l.premio, hdr(false, 'FF000000', bg, 'right'));
+      ws4[XLSX.utils.encode_cell({ r, c: 3 })] = brl(l.rateio, hdr(false, 'FF000000', bg, 'right'));
+      ws4[XLSX.utils.encode_cell({ r, c: 4 })] = brl(l.servico + l.reembolso, hdr(false, 'FF000000', bg, 'right'));
+      const cor = l.saldo > 0 ? 'FF16A34A' : (l.saldo < 0 ? 'FFDC2626' : 'FF6B7280');
+      ws4[XLSX.utils.encode_cell({ r, c: 5 })] = brl(l.saldo, hdr(true, cor, bg, 'right'));
+      r++;
+    });
+    put(r, 0, 'Caixa retém (fundo ranking)', hdr(true, 'FF000000', CINZA, 'left')); m4.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+    ws4[XLSX.utils.encode_cell({ r, c: 5 })] = brl(ranking_val, hdr(true, 'FF000000', CINZA, 'right'));
+    ws4['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r, c: 5 } });
+    ws4['!cols'] = [{ wch: 20 }, { wch: 13 }, { wch: 15 }, { wch: 13 }, { wch: 13 }, { wch: 14 }];
+    ws4['!merges'] = m4;
+    XLSX.utils.book_append_sheet(wb, ws4, `Rateio ${ds}`);
+  }
+
   // Download
   const dataStr = dl.replace(/\//g,'-');
   XLSX.writeFile(wb, `Poker_${dataStr}.xlsx`);
@@ -1901,6 +2362,9 @@ function renderResultadoFinal(torneio, opts) {
     html += `<div class="breakdown-row"><span>${j.nome}</span><span style="font-weight:600">R$ ${j.gastos.toFixed(2)}</span></div>`;
   });
   html += `</div>`;
+
+  // Custos extras / rateio de dealers
+  html += buildRateioHtml(torneio);
 
   // Botões
   if (opts.modoConsulta) {

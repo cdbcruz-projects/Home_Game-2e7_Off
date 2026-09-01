@@ -1,7 +1,7 @@
 // Poker Semanal — Service Worker
 // Bump o número da versão sempre que publicar um index.html novo,
 // assim o celular baixa a versão nova em vez de usar o cache antigo.
-const CACHE_NAME = 'poker-semanal-v2';
+const CACHE_NAME = 'poker-semanal-v3';
 const ASSETS = [
   './',
   './index.html',
