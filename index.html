@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root {
   --green:#16a34a;--green-light:#dcfce7;--green-mid:#22c55e;
@@ -477,6 +478,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <!-- ══ RANKING ══ -->
 <div class="screen" id="screen-ranking">
   <div id="ranking-periodo" style="margin-bottom:10px;"></div>
+  <div id="hist-importado-wrap"></div>
   <div class="stats-grid" id="ranking-stats"></div>
   <div class="card" style="padding:12px;">
     <div class="card-title" style="padding:0 4px;" id="ranking-titulo">Temporada — Classificação</div>
@@ -521,6 +523,10 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 
 <script>
 const _JOGADORES_FIXOS_SEED = ['CD','Kiik','Danilo','Ricardo','Richard','Basoli','Wendel','Genival','Marcos','Caio','Wilcker','JP','Jesus','Diogo','CA','Favero'];
+// Nome padrão do grupo (personalizado por build; vazio = usa "Torneio <ano>")
+const _NOME_GRUPO_PADRAO = '';
+// Histórico de temporada importado (só leitura). null = não mostra. Personalizado por build.
+const _HISTORICO_IMPORTADO = null;
 let JOGADORES_FIXOS = (() => {
   const saved = localStorage.getItem('poker_jogadores_fixos');
   if (saved) { try { return JSON.parse(saved); } catch (e) { return _JOGADORES_FIXOS_SEED.slice(); } }
@@ -800,7 +806,7 @@ function atualizarSummary() {
 // Nome do grupo/torneio exibido no cabeçalho (editável). Padrão: "Torneio {ano}".
 function nomeGrupo() {
   const n = (localStorage.getItem('poker_nome_grupo') || '').trim();
-  return n || `Torneio ${new Date().getFullYear()}`;
+  return n || _NOME_GRUPO_PADRAO || `Torneio ${new Date().getFullYear()}`;
 }
 
 function atualizarHeader() {
@@ -1959,7 +1965,37 @@ function calcularRanking(ano) {
   return Object.entries(pts).map(([nome,s])=>({nome,...s})).sort((a,b)=>b.pontos-a.pontos||b.vitorias-a.vitorias);
 }
 
+// Painel só-leitura de temporada importada (aparece só se o build tiver _HISTORICO_IMPORTADO)
+function renderHistoricoImportado() {
+  const wrap = document.getElementById('hist-importado-wrap');
+  if (!wrap) return;
+  const H = (typeof _HISTORICO_IMPORTADO !== 'undefined') ? _HISTORICO_IMPORTADO : null;
+  if (!H || !Array.isArray(H.linhas) || !H.linhas.length) { wrap.innerHTML = ''; return; }
+  const moeda = H.moeda || 'R$';
+  const esc = s => String(s).replace(/</g,'&lt;');
+  const medal = p => p===1?'🥇':p===2?'🥈':p===3?'🥉':'';
+  let linhas = '';
+  H.linhas.forEach((l,i) => {
+    const pos = l.pos || (i+1);
+    linhas += `<div class="breakdown-row" style="align-items:center;">
+      <span style="display:flex;align-items:center;gap:7px;"><b style="display:inline-block;min-width:20px;color:var(--gray-400);">${pos}º</b> ${esc(l.nome)} ${medal(pos)}</span>
+      <span style="display:flex;gap:12px;align-items:center;white-space:nowrap;">
+        <span title="Pontos" style="font-weight:700;">${l.pontos||0} pts</span>
+        <span title="Prêmios" style="color:var(--green);font-weight:600;">${moeda} ${l.premios||0}</span>
+        <span title="Vitórias" style="color:var(--gray-500);">🏆 ${l.vitorias||0}</span>
+      </span></div>`;
+  });
+  wrap.innerHTML = `<div class="card" style="padding:12px;border:1.5px solid var(--amber-light);">
+    <div class="card-title" style="padding:0 4px;color:var(--amber);">📼 ${esc(H.titulo || 'Temporada anterior (importada)')}</div>
+    <div style="font-size:11px;color:var(--gray-400);padding:0 4px 8px;">${esc(H.nota || 'Somente leitura — histórico importado.')}</div>
+    <div class="breakdown-row" style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);border-bottom:1.5px solid var(--gray-200);">
+      <span>Jogador</span><span style="display:flex;gap:12px;"><span>Pontos</span><span>Prêmios</span><span>🏆</span></span></div>
+    ${linhas}
+  </div>`;
+}
+
 function renderRanking() {
+  renderHistoricoImportado();
   const ano = anoRankingAtivo();
   const rank = calcularRanking(ano);
   const maxPts = rank[0]?.pontos || 1;
@@ -2452,8 +2488,126 @@ function exportarXLSX(torneio) {
 }
 
 // ── Resultado Final
+// ══ Placar do torneio (enviar resultado + ranking) ══════════════
+let _placarTorneio = null;
+function _fmtBR(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function _fmtBR0(v){ return Number(v||0).toLocaleString('pt-BR'); }
+
+// Ranking da temporada ATÉ a data do torneio (como estava naquele dia)
+function _rankingAteData(torneio, N){
+  const ano = String(torneio.data||'').slice(0,4);
+  const lim = String(torneio.data||'');
+  const pts = {};
+  const fontes = _construirFontesPorData();
+  Object.entries(fontes).forEach(([data, cols])=>{
+    if(!String(data).startsWith(ano)) return;
+    if(String(data) > lim) return;
+    cols.filter(c=>c.nome).forEach(c=>{
+      if(!pts[c.nome]) pts[c.nome]={pontos:0,vitorias:0};
+      pts[c.nome].pontos += c.pontos;
+      if(c.pos===1) pts[c.nome].vitorias++;
+    });
+  });
+  const arr = Object.entries(pts).map(([nome,s])=>({nome,...s})).sort((a,b)=>b.pontos-a.pontos||b.vitorias-a.vitorias);
+  return N ? arr.slice(0,N) : arr;
+}
+
+function _dadosPlacar(torneio){
+  const cols = torneio.colocacoes||{};
+  const liq = torneio.liquido||0;
+  const pcts=[.5,.3,.2], ptsArr=[35,25,15], emo=['🥇','🥈','🥉'];
+  const pod=[];
+  for(let i=0;i<3;i++){ const nome=cols[String(i+1)]; if(nome) pod.push({emoji:emo[i], pos:i+1, nome, premio: liq*pcts[i], pts:ptsArr[i]}); }
+  return { grupo:nomeGrupo(), dataFmt:_fmtDataBR(torneio.data), total:torneio.total||0,
+           ranking:torneio.ranking||0, liquido:liq, podio:pod, rank:_rankingAteData(torneio,5) };
+}
+
+function _textoPlacar(torneio){
+  const d=_dadosPlacar(torneio);
+  let t=`🃏 Resultado — Torneio ${d.dataFmt} · ${d.grupo}\n\n🏆 Pódio\n`;
+  d.podio.forEach(p=>{ t+=`${p.emoji} ${p.nome} — R$ ${_fmtBR(p.premio)} (${p.pts} pts)\n`; });
+  t+=`\n💰 Arrecadado R$ ${_fmtBR0(d.total)} · Fundo R$ ${_fmtBR0(d.ranking)} · Prêmio líquido R$ ${_fmtBR0(d.liquido)}\n`;
+  if(d.rank.length){ t+=`\n📊 Ranking da temporada\n`; d.rank.forEach((r,i)=>{ t+=`${i+1}. ${r.nome} — ${r.pontos} pts\n`; }); }
+  t+=`\nBora pra próxima! 🃏`;
+  return t;
+}
+
+function compartilharPlacar(){
+  const tor=_placarTorneio; if(!tor){ showToast('Abra um resultado primeiro'); return; }
+  const txt=_textoPlacar(tor);
+  if(navigator.share){ navigator.share({text:txt}).then(()=>showToast('📢 Compartilhado!')).catch(()=>{}); return; }
+  _copiarTexto(txt);
+  try{ window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank'); }catch(e){}
+}
+
+const _PLACAR_CHIP = '<svg width="78" height="78" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="#16a34a"/><circle cx="50" cy="50" r="40" fill="none" stroke="#0d7a35" stroke-width="2.5"/><circle cx="50" cy="50" r="33" fill="#111827"/><text x="50" y="67" font-size="42" text-anchor="middle" fill="#ffffff" font-family="Arial">&#9824;</text></svg>';
+
+function _buildPlacarNode(torneio){
+  const d=_dadosPlacar(torneio);
+  const maxp = d.rank.length ? (d.rank[0].pontos||1) : 1;
+  const wrap=document.createElement('div');
+  wrap.style.cssText="position:fixed;left:-99999px;top:0;width:1080px;background:linear-gradient(160deg,#111827,#0b1220);color:#fff;padding:56px;font-family:'Outfit',-apple-system,sans-serif;box-sizing:border-box;";
+  const pod=d.podio.map(p=>{
+    const hl = p.pos===1 ? "background:linear-gradient(180deg,#1f3b2a,#16241c);border:2px solid #16a34a;" : "background:#1b2334;border:2px solid transparent;";
+    return `<div style="${hl}border-radius:20px;padding:26px 12px;text-align:center;">
+      <div style="font-size:54px;line-height:1;">${p.emoji}</div>
+      <div style="font-size:28px;font-weight:800;margin-top:8px;">${p.nome}</div>
+      <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:8px;">R$ ${_fmtBR(p.premio)}</div>
+      <div style="font-size:18px;color:#9ca3af;margin-top:4px;">${p.pos}º · ${p.pts} pts</div>
+    </div>`;
+  }).join('');
+  const rows=d.rank.map((r,i)=>{
+    const w=Math.max(6, Math.round((r.pontos/maxp)*100));
+    return `<div style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid #1f2937;">
+      <span style="width:38px;height:38px;background:#1f2937;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;">${i+1}</span>
+      <span style="font-size:24px;font-weight:700;min-width:230px;">${r.nome}</span>
+      <span style="flex:1;height:16px;background:#1f2937;border-radius:10px;overflow:hidden;display:block;"><i style="display:block;height:100%;width:${w}%;background:linear-gradient(90deg,#16a34a,#34d399);"></i></span>
+      <span style="font-size:24px;font-weight:800;width:64px;text-align:right;">${r.pontos}</span>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:36px;">
+      ${_PLACAR_CHIP}
+      <div><div style="font-size:32px;font-weight:800;">${d.grupo}</div><div style="font-size:20px;color:#9ca3af;">Torneio · ${d.dataFmt}</div></div>
+      <div style="margin-left:auto;background:#16a34a;font-weight:800;font-size:20px;padding:8px 18px;border-radius:30px;letter-spacing:.06em;">RESULTADO</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:stretch;margin-bottom:32px;">${pod}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:34px;">
+      <div style="background:#161e2e;border-radius:16px;padding:18px;text-align:center;"><div style="font-size:16px;color:#9ca3af;">ARRECADADO</div><div style="font-size:30px;font-weight:800;color:#34d399;">R$ ${_fmtBR0(d.total)}</div></div>
+      <div style="background:#161e2e;border-radius:16px;padding:18px;text-align:center;"><div style="font-size:16px;color:#9ca3af;">FUNDO RANKING</div><div style="font-size:30px;font-weight:800;color:#fbbf24;">R$ ${_fmtBR0(d.ranking)}</div></div>
+      <div style="background:#161e2e;border-radius:16px;padding:18px;text-align:center;"><div style="font-size:16px;color:#9ca3af;">PRÊMIO LÍQUIDO</div><div style="font-size:30px;font-weight:800;">R$ ${_fmtBR0(d.liquido)}</div></div>
+    </div>
+    ${d.rank.length?`<div style="background:#0e1626;border-radius:20px;padding:24px 26px;"><div style="font-size:22px;font-weight:800;color:#fbbf24;margin-bottom:14px;">🏆 RANKING DA TEMPORADA</div>${rows}</div>`:''}
+    <div style="text-align:center;color:#6b7280;font-size:18px;margin-top:24px;">Gerado pelo app · compartilhe no grupo</div>`;
+  return wrap;
+}
+
+function gerarImagemPlacar(){
+  const tor=_placarTorneio; if(!tor){ showToast('Abra um resultado primeiro'); return; }
+  if(typeof html2canvas==='undefined'){ showToast('Precisa de internet para gerar a imagem'); return; }
+  showToast('Gerando imagem…');
+  const node=_buildPlacarNode(tor);
+  document.body.appendChild(node);
+  html2canvas(node,{scale:1,backgroundColor:'#0b1220',useCORS:true,logging:false}).then(canvas=>{
+    node.remove();
+    canvas.toBlob(blob=>{
+      if(!blob){ showToast('Falha ao gerar imagem'); return; }
+      const fname='placar_'+String(tor.data||'').replace(/-/g,'')+'.png';
+      const file=new File([blob],fname,{type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file]}).then(()=>showToast('🖼️ Compartilhado!')).catch(()=>{});
+      } else {
+        const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fname;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+        showToast('🖼️ Imagem baixada');
+      }
+    },'image/png');
+  }).catch(e=>{ node.remove(); showToast('Falha ao gerar imagem'); });
+}
+
 function renderResultadoFinal(torneio, opts) {
   opts = opts || {};
+  _placarTorneio = torneio;
   // Esconder pré-resultado e mostrar resultado final
   const inner = document.getElementById('screen-pre-resultado-inner');
   const final = document.getElementById('resultado-content');
@@ -2522,6 +2676,11 @@ function renderResultadoFinal(torneio, opts) {
 
   // Custos extras / rateio de dealers
   html += buildRateioHtml(torneio);
+
+  // Enviar placar (resultado + ranking) — vale para resultado novo E consulta de torneio antigo
+  html += `<div class="card" style="padding:12px;"><div class="card-title">📣 Divulgar no grupo</div>
+    <button class="btn-secondary" onclick="compartilharPlacar()" style="border-color:#128C7E;color:#128C7E;font-weight:700;margin-bottom:8px;">📢 Enviar resultado + ranking (texto)</button>
+    <button class="btn-secondary" onclick="gerarImagemPlacar()" style="border-color:var(--gray-900);color:var(--gray-900);">🖼️ Imagem do placar</button></div>`;
 
   // Botões
   if (opts.modoConsulta) {
