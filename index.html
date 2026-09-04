@@ -957,6 +957,20 @@ function calcularConsolidado(torneio) {
   return { R, linhas };
 }
 
+// ── FONTE ÚNICA: custo total (entradas + rateio) e ganho líquido por jogador ──
+// Líquido = prêmio bruto − custo total (+ serviço/reembolso p/ dealer/credor). Rateio 0 quando não há custos extras.
+function custoELiquidoMapa(torneio) {
+  const r2 = v => Math.round((v || 0) * 100) / 100;
+  const { linhas } = calcularConsolidado(torneio);
+  const m = {};
+  linhas.forEach(l => {
+    m[l.nome] = { premio: l.premio, gastoEntradas: l.gasto, rateio: l.rateio,
+                  custo: r2(l.gasto + l.rateio), liquido: l.saldo,
+                  servico: l.servico, reembolso: l.reembolso };
+  });
+  return m;
+}
+
 // ── Cobrança PIX (grupo + individual) ──────────────────────────
 let _ultimoConsolidado = null;
 function _copiarTexto(txt) {
@@ -1143,6 +1157,8 @@ function buildResultHtml(torneio, isPending) {
   ];
   const gastosMap = {};
   jogadores.forEach(j => { gastosMap[j.nome] = j.gastos; });
+  const netMap = custoELiquidoMapa(torneio);
+  const temExtras = (torneio.custosExtras || []).some(c => (parseFloat(c.valor) || 0) > 0);
 
   let html = '';
 
@@ -1174,16 +1190,19 @@ function buildResultHtml(torneio, isPending) {
   premiosDef.forEach((p,i) => {
     const pts = i===0?35:i===1?25:15;
     const bruto = liquido * p.pct;
-    const gasto = gastosMap[p.nome] || 0;
-    const liq = bruto - gasto;
+    const N = netMap[p.nome] || { custo: (gastosMap[p.nome]||0), liquido: bruto - (gastosMap[p.nome]||0), rateio:0 };
+    const liq = N.liquido;
     const liqColor = liq >= 0 ? 'var(--green)' : 'var(--red)';
     const liqSinal = liq >= 0 ? '+' : '';
+    const custoTxt = N.rateio > 0
+      ? `Custo: <strong>R$ ${N.custo.toFixed(2)}</strong> <span style="font-size:12px;color:var(--amber);font-weight:700">(entradas ${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(2)} + rateio ${N.rateio.toFixed(2)})</span>`
+      : `Custo: R$ ${N.custo.toFixed(2)}`;
     html += `<div class="premio-card" style="background:${p.cor}">
       <div class="premio-pos" style="background:${p.cor}">${p.emoji}</div>
       <div style="flex:1;">
         <div class="premio-name">${p.nome}</div>
         <div class="premio-pct">${(p.pct*100).toFixed(0)}% do prêmio • +${pts} pts</div>
-        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; Gasto: R$ ${gasto.toFixed(2)}</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; ${custoTxt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-size:11px;color:var(--gray-400);margin-bottom:2px;">Líquido</div>
@@ -1199,11 +1218,13 @@ function buildResultHtml(torneio, isPending) {
     <div class="breakdown-row"><span>Fundo ranking (10%)</span><span style="color:var(--amber)">R$ ${ranking.toFixed(2)}</span></div>
     <div class="breakdown-row total"><span>Prêmio líquido</span><span style="color:var(--green)">R$ ${liquido.toFixed(2)}</span></div></div>`;
 
-  // Gastos por jogador
+  // Custo por jogador (entradas + rateio dos custos extras)
   const sorted = [...jogadores].sort((a,b)=>b.entradas-a.entradas);
-  html += `<div class="card"><div class="card-title">Gastos por jogador</div>`;
+  html += `<div class="card"><div class="card-title">${temExtras ? 'Custo por jogador (entradas + extras)' : 'Custo por jogador'}</div>`;
   sorted.forEach(j => {
-    html += `<div class="breakdown-row"><span>${j.nome}</span><span style="font-weight:600">R$ ${j.gastos.toFixed(2)}</span></div>`;
+    const N = netMap[j.nome] || { custo: j.gastos, rateio: 0, gastoEntradas: j.gastos };
+    const extra = N.rateio > 0 ? ` <span style="font-size:12px;color:var(--amber);font-weight:700">(${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(0)} + ${N.rateio.toFixed(2)})</span>` : '';
+    html += `<div class="breakdown-row"><span>${j.nome}${extra}</span><span style="font-weight:600">R$ ${N.custo.toFixed(2)}</span></div>`;
   });
   html += `</div>`;
 
@@ -1454,18 +1475,21 @@ function confirmarExcluirTorneio() {
 
 // ── Resumo financeiro por jogador (acumulado da temporada, para compartilhar)
 function calcularFinanceiroJogador(nome) {
-  let totalGasto = 0, totalGanhoBruto = 0, jogos = 0, vitorias = 0, podios = 0;
+  let totalGasto = 0, totalGanhoBruto = 0, jogos = 0, vitorias = 0, podios = 0, saldoTemp = 0;
   historico.forEach(t => {
     const jog = (t.jogadores || []).find(j => j.nome === nome);
     if (!jog) return;
     jogos++;
-    totalGasto += jog.gastos || 0;
+    // custo total (entradas + rateio) e saldo líquido (com rateio/serviço/reembolso) via fonte única
+    const N = (custoELiquidoMapa(t) || {})[nome] || { custo: (jog.gastos||0), liquido: -(jog.gastos||0), premio: 0 };
+    totalGasto += N.custo || 0;
+    totalGanhoBruto += N.premio || 0;
+    saldoTemp += N.liquido || 0;
     const cols = t.colocacoes || {};
-    if (cols['1'] === nome) { totalGanhoBruto += t.liquido * 0.50; vitorias++; podios++; }
-    else if (cols['2'] === nome) { totalGanhoBruto += t.liquido * 0.30; podios++; }
-    else if (cols['3'] === nome) { totalGanhoBruto += t.liquido * 0.20; podios++; }
+    if (cols['1'] === nome) { vitorias++; podios++; }
+    else if (cols['2'] === nome || cols['3'] === nome) { podios++; }
   });
-  return { nome, jogos, vitorias, podios, totalGasto, totalGanhoBruto, saldo: totalGanhoBruto - totalGasto };
+  return { nome, jogos, vitorias, podios, totalGasto, totalGanhoBruto, saldo: Math.round(saldoTemp*100)/100 };
 }
 function abrirResumoFinanceiro(nome) {
   const f = calcularFinanceiroJogador(nome);
@@ -1645,11 +1669,10 @@ function buildMiniTorneio(t, isCurrent) {
   const cols = t.colocacoes || {};
   const gastosMap = {};
   t.jogadores.forEach(j => { gastosMap[j.nome] = j.gastos; });
+  const netMap = custoELiquidoMapa(t);
 
   function premioLiq(nome, pct) {
-    const bruto = t.liquido * pct;
-    const gasto = gastosMap[nome] || 0;
-    const liq = bruto - gasto;
+    const liq = (netMap[nome] ? netMap[nome].liquido : (t.liquido * pct - (gastosMap[nome] || 0)));
     const cor = liq >= 0 ? '#16a34a' : '#dc2626';
     const sinal = liq >= 0 ? '+' : '';
     return `<span style="font-size:12px;font-weight:500;color:${cor};">${sinal}R$ ${liq.toFixed(2)}</span>`;
@@ -1710,24 +1733,25 @@ function buildCompactTable(torneio, statusPending) {
   const { total, ranking, liquido, colocacoes, jogadores, buyin } = torneio;
   const sorted = [...jogadores].sort((a,b) => b.gastos - a.gastos);
   const top3 = [colocacoes?.['1'], colocacoes?.['2'], colocacoes?.['3']];
+  const netMap = custoELiquidoMapa(torneio);
   let rows = sorted.map(j => {
     const pos = top3.indexOf(j.nome);
     const emoji = pos===0?'🥇':pos===1?'🥈':pos===2?'🥉':'';
     const isWinner = pos >= 0;
-    const premio = isWinner ? (liquido * [.50,.30,.20][pos]) : 0;
-    const liq = isWinner ? premio - j.gastos : -j.gastos;
+    const N = netMap[j.nome] || { custo: j.gastos, liquido: (isWinner ? liquido*[.50,.30,.20][pos] - j.gastos : -j.gastos) };
+    const liq = N.liquido;
     const liqColor = liq >= 0 ? '#16a34a' : '#dc2626';
     return `<tr class="${isWinner?'highlight':''}">
       <td>${emoji} <strong>${j.nome}</strong></td>
       <td class="cen">${j.entradas}</td>
-      <td class="num">R$ ${j.gastos.toFixed(0)}</td>
+      <td class="num">R$ ${N.custo.toFixed(0)}</td>
       <td class="num" style="color:${liqColor};font-weight:700;">${liq>=0?'+':''}R$ ${liq.toFixed(0)}</td>
     </tr>`;
   }).join('');
   return `<thead><tr>
     <th>Jogador</th>
     <th class="cen">Entr.</th>
-    <th class="num">Gasto</th>
+    <th class="num">Custo</th>
     <th class="num">Liq.</th>
   </tr></thead><tbody>${rows}</tbody>`;
 }
@@ -2366,12 +2390,15 @@ function exportarXLSX(torneio) {
   ws1['!merges'] = [{s:{r:0,c:0},e:{r:0,c:4}}];
 
   // Cabeçalho
-  ['Posição','Jogador','Gastos','Ganho Bruto','Ganho Líquido'].forEach((h,ci) => {
+  ['Posição','Jogador','Custo','Ganho Bruto','Ganho Líquido'].forEach((h,ci) => {
     const addr = XLSX.utils.encode_cell({r:1,c:ci});
     ws1[addr] = cell(h, hdr(true,'FFFFFFFF',AZUL_H,'center'));
   });
 
   const merges1 = ws1['!merges'];
+
+  // fonte única: custo total (entradas + rateio) e ganho líquido (com rateio/serviço/reembolso)
+  const _netX = custoELiquidoMapa(torneio);
 
   // 14 linhas
   for(let i=0;i<14;i++){
@@ -2379,11 +2406,12 @@ function exportarXLSX(torneio) {
     const j = jogs[i] || null;
     const bg = i%2===0 ? AZUL_CL : BRANCO;
     const bold = !!(j && j.pos <= 3);
+    const N = j ? (_netX[j.nome] || { custo:j.gastos||0, premio:0, liquido:-(j.gastos||0) }) : null;
     ws1[XLSX.utils.encode_cell({r,c:0})] = cell(j?j.pos:null, hdr(bold,'FF000000',bg,'center'));
     ws1[XLSX.utils.encode_cell({r,c:1})] = cell(j?j.nome:'',  hdr(bold,'FF000000',bg,'left'));
-    ws1[XLSX.utils.encode_cell({r,c:2})] = j && j.gastos ? brl(j.gastos, hdr(false,'FF000000',bg,'right')) : cell('', hdr(false,'FF000000',bg,'center'));
-    ws1[XLSX.utils.encode_cell({r,c:3})] = j && j.bruto  ? brl(j.bruto,  hdr(false,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
-    ws1[XLSX.utils.encode_cell({r,c:4})] = j && j.liquido? brl(j.liquido,hdr(bold,'FF000000',bg,'right'))  : cell('-', hdr(false,'FF000000',bg,'center'));
+    ws1[XLSX.utils.encode_cell({r,c:2})] = N && N.custo ? brl(N.custo, hdr(false,'FF000000',bg,'right')) : cell('', hdr(false,'FF000000',bg,'center'));
+    ws1[XLSX.utils.encode_cell({r,c:3})] = N && N.premio ? brl(N.premio, hdr(false,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
+    ws1[XLSX.utils.encode_cell({r,c:4})] = N ? brl(N.liquido, hdr(bold,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
   }
 
   // PIX linha 17 (index 16)
@@ -2432,7 +2460,7 @@ function exportarXLSX(torneio) {
   ws3['D2'] = cell('Líquido', hdr(true,'FFFFFFFF',VERDE,'center'));
 
   // Cabeçalho
-  ['Posição','Nome','Pontos','Ganhos','Gastos'].forEach((h,ci) => {
+  ['Posição','Nome','Pontos','Ganhos','Custos'].forEach((h,ci) => {
     ws3[XLSX.utils.encode_cell({r:2,c:ci})] = cell(h, hdr(true,'FFFFFFFF',AZUL_ES,'center'));
   });
 
@@ -2446,16 +2474,17 @@ function exportarXLSX(torneio) {
     const pts = ptsMap[pos] || 5;
     const bg = i%2===0 ? BRANCO : CINZA;
     const bold = pos<=3;
+    const N3 = jData ? (_netX[jData.nome] || {}) : {};
     const bruto_pct = pos===1?.50:pos===2?.30:pos===3?.20:0;
-    const ganho_bruto = bruto_pct ? Math.round(liquido_val*bruto_pct*100)/100 : null;
-    const gasto = jData ? jData.gastos : null;
-    const ganho_liq = ganho_bruto && gasto ? Math.round((ganho_bruto-gasto)*100)/100 : null;
+    const ganho_bruto = bruto_pct ? Math.round(liquido_val*bruto_pct*100)/100 : 0;
+    const custoTot = jData ? (N3.custo != null ? N3.custo : (jData.gastos||0)) : null;
+    const ganho_liq = jData ? (N3.liquido != null ? N3.liquido : Math.round((ganho_bruto-(jData.gastos||0))*100)/100) : null;
 
     ws3[XLSX.utils.encode_cell({r,c:0})] = cell(`${pos}º Lugar`, hdr(bold,'FF000000',bg,'left'));
     ws3[XLSX.utils.encode_cell({r,c:1})] = cell(nome||'',         hdr(bold,'FF000000',bg,'left'));
     ws3[XLSX.utils.encode_cell({r,c:2})] = cell(pts,              hdr(bold,'FF000000',bg,'center'));
     ws3[XLSX.utils.encode_cell({r,c:3})] = ganho_liq!=null ? brl(ganho_liq, hdr(bold,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
-    ws3[XLSX.utils.encode_cell({r,c:4})] = gasto ? brl(gasto, hdr(bold,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
+    ws3[XLSX.utils.encode_cell({r,c:4})] = custoTot!=null ? brl(custoTot, hdr(bold,'FF000000',bg,'right')) : cell('-', hdr(false,'FF000000',bg,'center'));
   }
 
   ws3['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:16,c:4}});
@@ -2546,16 +2575,19 @@ function _dadosPlacar(torneio){
   const cols = torneio.colocacoes||{};
   const liq = torneio.liquido||0;
   const pcts=[.5,.3,.2], ptsArr=[35,25,15], emo=['🥇','🥈','🥉'];
+  const netMap = custoELiquidoMapa(torneio);
+  const temExtras = (torneio.custosExtras || []).some(c => (parseFloat(c.valor) || 0) > 0);
   const pod=[];
-  for(let i=0;i<3;i++){ const nome=cols[String(i+1)]; if(nome) pod.push({emoji:emo[i], pos:i+1, nome, premio: liq*pcts[i], pts:ptsArr[i]}); }
+  for(let i=0;i<3;i++){ const nome=cols[String(i+1)]; if(nome){ const bruto=liq*pcts[i]; const N=netMap[nome];
+    pod.push({emoji:emo[i], pos:i+1, nome, bruto, liquido: N?N.liquido:(bruto), pts:ptsArr[i]}); } }
   return { grupo:nomeGrupo(), dataFmt:_fmtDataBR(torneio.data), total:torneio.total||0,
-           ranking:torneio.ranking||0, liquido:liq, podio:pod, rank:_rankingAteData(torneio,5) };
+           ranking:torneio.ranking||0, liquido:liq, temExtras, podio:pod, rank:_rankingAteData(torneio,5) };
 }
 
 function _textoPlacar(torneio){
   const d=_dadosPlacar(torneio);
-  let t=`🃏 Resultado — Torneio ${d.dataFmt} · ${d.grupo}\n\n🏆 Pódio\n`;
-  d.podio.forEach(p=>{ t+=`${p.emoji} ${p.nome} — R$ ${_fmtBR(p.premio)} (${p.pts} pts)\n`; });
+  let t=`🃏 Resultado — Torneio ${d.dataFmt} · ${d.grupo}\n\n🏆 Pódio (ganho líquido)\n`;
+  d.podio.forEach(p=>{ t+=`${p.emoji} ${p.nome} — R$ ${_fmtBR(p.liquido)} (bruto R$ ${_fmtBR(p.bruto)}) · ${p.pts} pts\n`; });
   t+=`\n💰 Arrecadado R$ ${_fmtBR0(d.total)} · Fundo R$ ${_fmtBR0(d.ranking)} · Prêmio líquido R$ ${_fmtBR0(d.liquido)}\n`;
   if(d.rank.length){ t+=`\n📊 Ranking da temporada\n`; d.rank.forEach((r,i)=>{ t+=`${i+1}. ${r.nome} — ${r.pontos} pts\n`; }); }
   t+=`\nBora pra próxima! 🃏`;
@@ -2582,7 +2614,8 @@ function _buildPlacarNode(torneio){
     return `<div style="${hl}border-radius:20px;padding:26px 12px;text-align:center;">
       <div style="font-size:54px;line-height:1;">${p.emoji}</div>
       <div style="font-size:28px;font-weight:800;margin-top:8px;">${p.nome}</div>
-      <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:8px;">R$ ${_fmtBR(p.premio)}</div>
+      <div style="font-size:28px;font-weight:800;color:#34d399;margin-top:8px;">R$ ${_fmtBR(p.liquido)}</div>
+      <div style="font-size:15px;color:#9ca3af;margin-top:3px;">líquido · bruto R$ ${_fmtBR(p.bruto)}</div>
       <div style="font-size:18px;color:#9ca3af;margin-top:4px;">${p.pos}º · ${p.pts} pts</div>
     </div>`;
   }).join('');
@@ -2728,6 +2761,8 @@ function renderResultadoFinal(torneio, opts) {
   ];
   const gastosMap = {};
   jogadores.forEach(j => { gastosMap[j.nome] = j.gastos; });
+  const netMap = custoELiquidoMapa(torneio);
+  const temExtras = (torneio.custosExtras || []).some(c => (parseFloat(c.valor) || 0) > 0);
 
   let html = '';
 
@@ -2745,16 +2780,19 @@ function renderResultadoFinal(torneio, opts) {
   premiosDef.forEach((p,i) => {
     const pts = i===0?35:i===1?25:15;
     const bruto = liquido * p.pct;
-    const gasto = gastosMap[p.nome] || 0;
-    const liq = bruto - gasto;
+    const N = netMap[p.nome] || { custo: (gastosMap[p.nome]||0), liquido: bruto - (gastosMap[p.nome]||0), rateio:0 };
+    const liq = N.liquido;
     const liqColor = liq>=0?'var(--green)':'var(--red)';
     const liqSinal = liq>=0?'+':'';
+    const custoTxt = N.rateio > 0
+      ? `Custo: <strong>R$ ${N.custo.toFixed(2)}</strong> <span style="font-size:12px;color:var(--amber);font-weight:700">(entradas ${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(2)} + rateio ${N.rateio.toFixed(2)})</span>`
+      : `Custo: R$ ${N.custo.toFixed(2)}`;
     html += `<div class="premio-card" style="background:${p.cor}">
       <div class="premio-pos" style="background:${p.cor}">${p.emoji}</div>
       <div style="flex:1;">
         <div class="premio-name">${p.nome}</div>
         <div class="premio-pct">${(p.pct*100).toFixed(0)}% do prêmio • +${pts} pts</div>
-        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; Gasto: R$ ${gasto.toFixed(2)}</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; ${custoTxt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-size:11px;color:var(--gray-400);margin-bottom:2px;">Líquido</div>
@@ -2771,11 +2809,13 @@ function renderResultadoFinal(torneio, opts) {
     <div class="breakdown-row total"><span>Prêmio líquido</span><span style="color:var(--green)">R$ ${liquido.toFixed(2)}</span></div>
   </div>`;
 
-  // Gastos por jogador
+  // Custo por jogador (entradas + rateio dos custos extras)
   const sorted = [...jogadores].sort((a,b)=>b.gastos-a.gastos);
-  html += `<div class="card"><div class="card-title">GASTOS POR JOGADOR</div>`;
+  html += `<div class="card"><div class="card-title">${temExtras ? 'CUSTO POR JOGADOR (ENTRADAS + EXTRAS)' : 'CUSTO POR JOGADOR'}</div>`;
   sorted.forEach(j => {
-    html += `<div class="breakdown-row"><span>${j.nome}</span><span style="font-weight:600">R$ ${j.gastos.toFixed(2)}</span></div>`;
+    const N = netMap[j.nome] || { custo: j.gastos, rateio: 0, gastoEntradas: j.gastos };
+    const extra = N.rateio > 0 ? ` <span style="font-size:12px;color:var(--amber);font-weight:700">(${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(0)} + ${N.rateio.toFixed(2)})</span>` : '';
+    html += `<div class="breakdown-row"><span>${j.nome}${extra}</span><span style="font-weight:600">R$ ${N.custo.toFixed(2)}</span></div>`;
   });
   html += `</div>`;
 
