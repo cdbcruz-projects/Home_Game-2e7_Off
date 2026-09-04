@@ -92,6 +92,19 @@ body{font-family:'Outfit',sans-serif;background:var(--gray-50);color:var(--gray-
 .premio-pos{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;flex-shrink:0;}
 .premio-name{font-weight:600;font-size:15px;}
 .premio-val{font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;margin-left:auto;}
+/* Card de pódio reestruturado (Colocações & Prêmios) */
+.pc{border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;}
+.pc-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pc-med{font-size:26px;line-height:1;flex-shrink:0;}
+.pc-name{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--gray-900);flex:1;}
+.pc-badge{background:rgba(255,255,255,.82);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:800;color:var(--gray-800);white-space:nowrap;}
+.pc-rows{background:rgba(255,255,255,.72);border-radius:11px;overflow:hidden;}
+.pc-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:14px;color:var(--gray-800);border-bottom:1px solid rgba(0,0,0,.06);}
+.pc-row:last-child{border-bottom:none;}
+.pc-v{font-family:'Outfit',sans-serif;font-weight:800;color:var(--gray-900);}
+.pc-liq{background:var(--green-light);}
+.pc-liq span,.pc-liq .pc-v{color:#15803d;font-weight:800;}
+.pc-liq .pc-v{font-size:16px;}
 .premio-pct{font-size:12px;color:var(--gray-400);}
 .breakdown-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px;}
 .breakdown-row:last-child{border-bottom:none;}
@@ -1147,6 +1160,28 @@ function renderRateioPreview() {
 // Dados do torneio pendente de validação
 let pendingTorneio = null;
 
+// Card de pódio (Opção C — tabela rotulada). Reutilizado no pré-resultado e no resultado oficial.
+function _premioCardHtml(p, i, bruto, N) {
+  const pts = [35,25,15][i];
+  const liq = N.liquido;
+  const liqSinal = liq >= 0 ? '+' : '';
+  const ratTxt = N.rateio > 0
+    ? ` <span style="font-size:12px;color:var(--amber);font-weight:700">(${(N.gastoEntradas ?? (N.custo - N.rateio)).toFixed(0)} + ${N.rateio.toFixed(2)})</span>`
+    : '';
+  return `<div class="pc" style="background:${p.cor}">
+    <div class="pc-hd">
+      <span class="pc-med">${p.emoji}</span>
+      <span class="pc-name">${p.nome}</span>
+      <span class="pc-badge">${(p.pct*100).toFixed(0)}% · ${pts} pts</span>
+    </div>
+    <div class="pc-rows">
+      <div class="pc-row"><span>Prêmio bruto</span><span class="pc-v">R$ ${bruto.toFixed(2)}</span></div>
+      <div class="pc-row"><span>Custo${ratTxt}</span><span class="pc-v">R$ ${N.custo.toFixed(2)}</span></div>
+      <div class="pc-row pc-liq"><span>Ganho líquido</span><span class="pc-v">${liqSinal}R$ ${liq.toFixed(2)}</span></div>
+    </div>
+  </div>`;
+}
+
 function buildResultHtml(torneio, isPending) {
   const { data, total, ranking, liquido, colocacoes, jogadores, buyin } = torneio;
   const dataFmt = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
@@ -1188,27 +1223,10 @@ function buildResultHtml(torneio, isPending) {
       <div style="background:var(--gray-100);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;font-weight:500;color:var(--gray-600);">&#128197; ${dataFmt}</div>
     </div>`;
   premiosDef.forEach((p,i) => {
-    const pts = i===0?35:i===1?25:15;
+    if (!p.nome) return;
     const bruto = liquido * p.pct;
     const N = netMap[p.nome] || { custo: (gastosMap[p.nome]||0), liquido: bruto - (gastosMap[p.nome]||0), rateio:0 };
-    const liq = N.liquido;
-    const liqColor = liq >= 0 ? 'var(--green)' : 'var(--red)';
-    const liqSinal = liq >= 0 ? '+' : '';
-    const custoTxt = N.rateio > 0
-      ? `Custo: <strong>R$ ${N.custo.toFixed(2)}</strong> <span style="font-size:12px;color:var(--amber);font-weight:700">(entradas ${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(2)} + rateio ${N.rateio.toFixed(2)})</span>`
-      : `Custo: R$ ${N.custo.toFixed(2)}`;
-    html += `<div class="premio-card" style="background:${p.cor}">
-      <div class="premio-pos" style="background:${p.cor}">${p.emoji}</div>
-      <div style="flex:1;">
-        <div class="premio-name">${p.nome}</div>
-        <div class="premio-pct">${(p.pct*100).toFixed(0)}% do prêmio • +${pts} pts</div>
-        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; ${custoTxt}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:11px;color:var(--gray-400);margin-bottom:2px;">Líquido</div>
-        <div class="premio-val" style="color:${liqColor};">${liqSinal}R$ ${liq.toFixed(2)}</div>
-      </div>
-    </div>`;
+    html += _premioCardHtml(p, i, bruto, N);
   });
   html += `</div>`;
 
@@ -2778,27 +2796,10 @@ function renderResultadoFinal(torneio, opts) {
   // Prêmios
   html += `<div class="card"><div class="card-title">COLOCAÇÕES & PRÊMIOS</div>`;
   premiosDef.forEach((p,i) => {
-    const pts = i===0?35:i===1?25:15;
+    if (!p.nome) return;
     const bruto = liquido * p.pct;
     const N = netMap[p.nome] || { custo: (gastosMap[p.nome]||0), liquido: bruto - (gastosMap[p.nome]||0), rateio:0 };
-    const liq = N.liquido;
-    const liqColor = liq>=0?'var(--green)':'var(--red)';
-    const liqSinal = liq>=0?'+':'';
-    const custoTxt = N.rateio > 0
-      ? `Custo: <strong>R$ ${N.custo.toFixed(2)}</strong> <span style="font-size:12px;color:var(--amber);font-weight:700">(entradas ${(N.gastoEntradas??(N.custo-N.rateio)).toFixed(2)} + rateio ${N.rateio.toFixed(2)})</span>`
-      : `Custo: R$ ${N.custo.toFixed(2)}`;
-    html += `<div class="premio-card" style="background:${p.cor}">
-      <div class="premio-pos" style="background:${p.cor}">${p.emoji}</div>
-      <div style="flex:1;">
-        <div class="premio-name">${p.nome}</div>
-        <div class="premio-pct">${(p.pct*100).toFixed(0)}% do prêmio • +${pts} pts</div>
-        <div style="margin-top:4px;font-size:12px;color:var(--gray-600);">Bruto: <strong>R$ ${bruto.toFixed(2)}</strong> &nbsp;|&nbsp; ${custoTxt}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:11px;color:var(--gray-400);margin-bottom:2px;">Líquido</div>
-        <div class="premio-val" style="color:${liqColor};">${liqSinal}R$ ${liq.toFixed(2)}</div>
-      </div>
-    </div>`;
+    html += _premioCardHtml(p, i, bruto, N);
   });
   html += `</div>`;
 
